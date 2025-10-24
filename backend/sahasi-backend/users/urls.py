@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import UpdateFCMTokenView
 from .views import GoogleAuthView
-from .views import (RegisterView, MeView, ChangePasswordView, TrustedContactViewSet, LogoutView, UpdateLocationView, CurrentLocationView,SafePlaceViewSet,ChatMessageViewSet,MergedSafePlacesView,EmergencyMediaViewSet,SOSAlertView
+from .views import (RegisterView, MeView,LoginView, ChangePasswordView, TrustedContactViewSet, LogoutView, UpdateLocationView, CurrentLocationView,SafePlaceViewSet,ChatMessageViewSet,MergedSafePlacesView,EmergencyMediaViewSet,SOSAlertView
 )
 
 router = DefaultRouter()
@@ -14,6 +14,7 @@ router.register(r"emergency-media", EmergencyMediaViewSet, basename="emergencyme
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
+    path("login/", LoginView.as_view(), name="login"),
     path("me/", MeView.as_view(), name="me"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("logout/", LogoutView.as_view(), name="logout"),

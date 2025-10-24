@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { loginUser } from '../api'; // adjust path if needed
+
 import {
   View,
   Text,
@@ -19,22 +21,34 @@ const { width } = Dimensions.get('window');
 const loadingPic = require('../../assets/loading_pic.png');
 
 const SignInScreen = ({ navigation }) => {
-  const [emailOrUsername, setEmailOrUsername] = useState(''); // Changed state name for clarity
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState(''); // Added state for error messages
 
-  const handleLogin = () => {
-    // TODO: Add API call to your backend for user authentication
-    // Your backend will determine if emailOrUsername is an email or a username.
-    console.log('Login pressed with:', { identifier: emailOrUsername, password });
-    
-    // For demonstration, navigate to the home screen on successful login
-    if (navigation) {
-      navigation.replace('HomeScreen');
+  const handleLogin = async () => {
+    setLoginError(''); // reset error on each login attempt
+
+    if (!emailOrUsername || !password) {
+      setLoginError('Please fill all fields');
+      return;
+    }
+
+    try {
+      const response = await loginUser(emailOrUsername, password);
+
+      if (response.ok) {
+        console.log('Login successful:', response.data);
+        navigation.replace('HomeScreen'); // navigate on success
+      } else {
+        setLoginError(response.data.detail || 'Login failed');
+      }
+    } catch (error) {
+      setLoginError('Network error');
+      console.error('Login error:', error.message);
     }
   };
 
   const handleForgotPassword = () => {
-    // TODO: Navigate to the Forgot Password screen
     console.log('Forgot password pressed');
     // if (navigation) {
     //   navigation.navigate('ForgotPasswordScreen');
@@ -42,7 +56,6 @@ const SignInScreen = ({ navigation }) => {
   };
 
   const handleSignUp = () => {
-    // Navigate to the Sign Up screen
     if (navigation) {
       navigation.navigate('SignUpScreen');
     }
@@ -75,16 +88,21 @@ const SignInScreen = ({ navigation }) => {
 
         {/* Form Container */}
         <View style={styles.formContainer}>
+          {/* Display login error */}
+          {loginError !== '' && (
+            <Text style={styles.errorText}>{loginError}</Text>
+          )}
+
           {/* Email/Username Field */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email / Username</Text> {/* Updated Label */}
+            <Text style={styles.inputLabel}>Email / Username</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Enter your email or username" // Updated placeholder
+              placeholder="Enter your email or username"
               placeholderTextColor="#A0AEC0"
               value={emailOrUsername}
               onChangeText={setEmailOrUsername}
-              keyboardType="email-address" // Keep for easier email entry on mobile keyboards
+              keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -240,6 +258,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8B5CF6',
     fontWeight: '600',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });
 

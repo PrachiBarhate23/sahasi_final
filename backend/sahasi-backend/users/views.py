@@ -2,6 +2,8 @@
 from rest_framework import generics, viewsets, permissions, status,serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import permissions
 from django.contrib.auth import get_user_model
 from .serializers import RegisterSerializer, UserSerializer, ChangePasswordSerializer, TrustedContactSerializer
 from .models import TrustedContact
@@ -81,10 +83,20 @@ class GoogleAuthView(APIView):
         except ValueError:
             return Response({"detail": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
         
-class RegisterView(generics.CreateAPIView):
+class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
-    serializer_class = RegisterSerializer
-    queryset = User.objects.all()
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print("REGISTER SERIALIZER ERRORS:", serializer.errors)  # <-- Add this line
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginView(TokenObtainPairView):
+    permission_classes = [permissions.AllowAny]
 
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer

@@ -8,9 +8,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
+ALLOWED_HOSTS = ["192.168.1.2", "localhost", "127.0.0.1"]
 
 INSTALLED_APPS = [
+    'django_extensions',
     # Django
     "django.contrib.admin",
     "django.contrib.auth",
@@ -106,7 +107,16 @@ USE_TZ = True
 STATIC_URL = "/static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
+# settings.py
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:19006",
+    "http://127.0.0.1:19006",
+    "exp://koevycm-anonymous-8081.exp.direct",  # <-- add your tunnel URL
+]
+
+
+CORS_ALLOW_ALL_ORIGINS = True  # for testing (disable in production)
+
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
