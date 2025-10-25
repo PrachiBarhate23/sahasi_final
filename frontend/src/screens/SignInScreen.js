@@ -38,7 +38,7 @@ const SignInScreen = ({ navigation }) => {
 
       if (response.ok) {
         console.log('Login successful:', response.data);
-        navigation.replace('HomeScreen'); // navigate on success
+        navigation.replace('HomePage'); // navigate on success
       } else {
         setLoginError(response.data.detail || 'Login failed');
       }

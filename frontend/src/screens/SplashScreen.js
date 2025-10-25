@@ -26,7 +26,7 @@ const SplashScreen = ({ navigation }) => {
 
         if (userToken) {
           // If a token exists, the user is signed in. Navigate to the home screen.
-          navigation.replace('HomeScreen');
+          navigation.replace('HomePage');
         } else {
           // If no token exists, it's either the first download or the user logged out.
           // In this case, we simply stop the loading state, which will show the buttons.
