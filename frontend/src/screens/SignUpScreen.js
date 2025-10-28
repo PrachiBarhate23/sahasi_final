@@ -42,10 +42,21 @@ const handleSignUp = async () => {
   });
 
   if (response.ok) {
-    navigation.navigate("Login");
-  } else {
-    setSignUpError(response.data.detail || "Registration failed");
-  }
+  // Save user info to AsyncStorage
+  const userData = {
+    firstName,
+    lastName,
+    phoneNumber,
+    email,
+    username,
+  };
+  await AsyncStorage.setItem('userData', JSON.stringify(userData));
+
+  navigation.navigate("Login");
+} else {
+  setSignUpError(response.data.detail || "Registration failed");
+}
+
 };
 
 

@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 // Import your screens
 import SplashScreen from './src/screens/SplashScreen';
+import ProfileCompletedScreen from './src/screens/ProfileCompletedScreen';
 import HomePage from './src/screens/HomePage';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import SignInScreen from './src/screens/SignInScreen';
@@ -38,6 +39,7 @@ const App = () => {
         <Stack.Screen name="FakeCallSetup" component={FakeCallSetupScreen} />
         <Stack.Screen name="TrustedContacts" component={TrustedContactsScreen} />
         <Stack.Screen name="AppReference" component={AppReferenceScreen} />
+        <Stack.Screen name="ProfileCompletedScreen" component={ProfileCompletedScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

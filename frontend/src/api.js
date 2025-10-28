@@ -4,9 +4,8 @@
 // Configure API base URL
 // =======================
 
-// For mobile via Expo tunnel or local IP
-// Replace with your ngrok/localhost IP:port
 export const API_BASE_URL =  'http://127.0.0.1:8000';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ================= LOGIN API =================
 export const loginUser = async (username, password) => {
@@ -51,5 +50,144 @@ export const registerUser = async ({ first_name, last_name, phone, email, userna
     return { ok: response.ok, data };
   } catch (error) {
     return { ok: false, data: { detail: 'Network error' } };
+  }
+};
+
+// ================= GET USER PROFILE =================
+export const getUserProfile = async (token) => {
+  console.log('Fetching profile with token:', token); // <-- debug token
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/me/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // Pass the token here
+      },
+    });
+
+    const text = await response.text();
+    console.log('Raw response from /me/:', text); // <-- debug server response
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error('Non-JSON response:', text);
+      data = { detail: 'Invalid response from server' };
+    }
+
+    return { ok: response.ok, data };
+  } catch (error) {
+    console.error('Get profile API error:', error);
+    return { ok: false, data: { detail: 'Network error' } };
+  }
+};
+
+// ================= UPDATE USER PROFILE =================
+export const updateUserProfile = async (token, profileData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/profile/update/`, {  // <-- use correct path
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(profileData),
+    });
+
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { detail: 'Invalid response from server' };
+    }
+
+    return { ok: response.ok, data };
+  } catch (error) {
+    return { ok: false, data: { detail: 'Network error' } };
+  }
+};
+
+const TRUSTED_CONTACTS_BASE = `${API_BASE_URL}/api/users/trusted-contacts/`;
+
+export const getTrustedContacts = async () => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) throw new Error('No auth token found');
+
+    const res = await fetch(TRUSTED_CONTACTS_BASE, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error('getTrustedContacts Error:', err);
+    return { ok: false, data: null };
+  }
+};
+
+export const addTrustedContact = async (contact) => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) throw new Error('No auth token found');
+
+    const res = await fetch(TRUSTED_CONTACTS_BASE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(contact),
+    });
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error('addTrustedContact Error:', err);
+    return { ok: false, data: null };
+  }
+};
+
+export const updateTrustedContact = async (id, contact) => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) throw new Error('No auth token found');
+
+    const res = await fetch(`${TRUSTED_CONTACTS_BASE}${id}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(contact),
+    });
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error('updateTrustedContact Error:', err);
+    return { ok: false, data: null };
+  }
+};
+
+export const deleteTrustedContact = async (id) => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) throw new Error('No auth token found');
+
+    const res = await fetch(`${TRUSTED_CONTACTS_BASE}${id}/`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    let data = {};
+    try { data = await res.json(); } catch {}
+
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error('deleteTrustedContact Error:', err);
+    return { ok: false, data: null };
   }
 };

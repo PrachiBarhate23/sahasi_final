@@ -9,7 +9,7 @@ from .serializers import RegisterSerializer, UserSerializer, ChangePasswordSeria
 from .models import TrustedContact
 from django.shortcuts import get_object_or_404
 from .models import Location, SafePlace, ChatMessage,EmergencyMedia,SOSAlert   # updated import
-from .serializers import LocationSerializer, SafePlaceSerializer, ChatMessageSerializer,EmergencyMediaSerializer,SOSAlertSerializer
+from .serializers import LocationSerializer, SafePlaceSerializer, ChatMessageSerializer,EmergencyMediaSerializer,SOSAlertSerializer,UpdateProfileSerializer
 import requests
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.core.mail import send_mail
@@ -103,6 +103,16 @@ class MeView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     def get_object(self):
         return self.request.user
+
+class UpdateProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def put(self, request):
+        serializer = UpdateProfileSerializer(instance=request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profile completed"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
