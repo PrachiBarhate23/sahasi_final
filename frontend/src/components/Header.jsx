@@ -45,7 +45,7 @@ const Header = ({ theme = 'light' }) => {
       {/* Left side - Logo and App Name */}
       <View style={styles.leftSection}>
         <Image
-          source={require('../../assets/loading.png')}
+          source={require('../../assets/loading_pic.png')}
           style={styles.logo}
           resizeMode="contain"
         />

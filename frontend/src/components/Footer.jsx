@@ -31,8 +31,9 @@ const Footer = ({ theme = 'dark', navigation }) => {
   };
 
   const handleCameraPress = () => {
-    console.log('Camera pressed');
-  };
+  console.log('Messages pressed');
+  navigation.navigate('ContactsList'); // 👈 Opens chat system
+};
 
   const handlePhonePress = () => {
     console.log('Phone pressed');
@@ -99,13 +100,13 @@ const Footer = ({ theme = 'dark', navigation }) => {
           <Text style={styles.sosText}>SOS</Text>
         </TouchableOpacity>
 
-        {/* Camera Icon */}
+        {/* message Icon */}
         <TouchableOpacity 
           style={styles.iconButton} 
           onPress={handleCameraPress}
           activeOpacity={0.7}
         >
-          <Icon name="camera-outline" size={24} color={dynamicStyles.iconColor} />
+          <Icon name="message-text-outline" size={24} color={dynamicStyles.iconColor} />
         </TouchableOpacity>
 
         {/* Phone/Call Icon */}
