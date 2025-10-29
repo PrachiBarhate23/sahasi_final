@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { loginUser } from '../api'; // adjust path if needed
+import { loginUser } from '../api'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';// adjust path if needed
 
 import {
   View,
@@ -25,28 +26,43 @@ const SignInScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(''); // Added state for error messages
 
-  const handleLogin = async () => {
-    setLoginError(''); // reset error on each login attempt
+ const handleLogin = async () => {
+  setLoginError('');
 
-    if (!emailOrUsername || !password) {
-      setLoginError('Please fill all fields');
-      return;
-    }
+  if (!emailOrUsername || !password) {
+    setLoginError('Please fill all fields');
+    return;
+  }
 
-    try {
-      const response = await loginUser(emailOrUsername, password);
+  try {
+    const response = await loginUser(emailOrUsername, password);
 
-      if (response.ok) {
-        console.log('Login successful:', response.data);
-        navigation.replace('HomePage'); // navigate on success
-      } else {
-        setLoginError(response.data.detail || 'Login failed');
-      }
-    } catch (error) {
-      setLoginError('Network error');
-      console.error('Login error:', error.message);
-    }
+   if (response.ok) {
+  console.log('Login successful:', response.data);
+
+  // Save token
+  await AsyncStorage.setItem('authToken', response.data.access);
+
+  // Save user info for autofill
+  const userInfo = {
+    firstName: response.data.first_name,
+    lastName: response.data.last_name,
+    phoneNumber: response.data.phone,
+    email: response.data.email,
+    username: response.data.username,
   };
+  await AsyncStorage.setItem('userData', JSON.stringify(userInfo));
+
+  navigation.replace('HomePage');
+} else {
+  setLoginError(response.data.detail || 'Login failed');
+}
+
+  } catch (error) {
+    setLoginError('Network error');
+    console.error('Login error:', error.message);
+  }
+};
 
   const handleForgotPassword = () => {
     console.log('Forgot password pressed');

@@ -7,8 +7,15 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
     is_verified = models.BooleanField(default=False)
     fcm_token = models.CharField(max_length=512, blank=True, null=True)
+
+    # ADD THESE
+    address = models.CharField(max_length=255, blank=True, null=True)
+    blood_group = models.CharField(max_length=10, blank=True, null=True)
+    emergency_contact = models.CharField(max_length=20, blank=True, null=True)
+
     def __str__(self):
         return self.username
+
 
 class TrustedContact(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="trusted_contacts")

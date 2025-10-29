@@ -9,7 +9,17 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "phone", "is_verified","fcm_token"]
+        fields = [
+            "id", "username", "email", "first_name", "last_name", 
+            "phone", "is_verified", "fcm_token",
+            "address", "blood_group", "emergency_contact"
+        ]
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "phone", "address", "blood_group", "emergency_contact"]
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
