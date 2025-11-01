@@ -28,6 +28,9 @@ INSTALLED_APPS = [
 
     # Local apps
     "users",
+
+    'rest_framework',
+    'your_chat_app_name', 
 ]
 
 MIDDLEWARE = [

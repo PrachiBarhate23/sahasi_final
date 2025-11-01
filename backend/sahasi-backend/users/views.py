@@ -23,7 +23,7 @@ from googleapiclient.discovery import build
 import base64
 from email.mime.text import MIMEText
 from pyfcm import FCMNotification
-from .tasks import send_sos_email, send_sos_push, send_sos_sms
+from .tasks import send_sos_push, send_sos_sms
 from .utils.capture_media import capture_photo, capture_video
 
 
