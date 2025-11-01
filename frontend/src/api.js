@@ -191,3 +191,25 @@ export const deleteTrustedContact = async (id) => {
     return { ok: false, data: null };
   }
 };
+
+// ================= SAFE PLACES =================
+export const getSafePlaces = async (lat, lng) => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) throw new Error('No auth token found');
+
+    const res = await fetch(`${API_BASE_URL}/api/users/safeplaces/merged/?lat=${lat}&lng=${lng}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error('getSafePlaces Error:', err);
+    return { ok: false, data: [] };
+  }
+};
