@@ -23,48 +23,15 @@ const Footer = ({ theme = 'dark' }) => {
     Vibration.vibrate(100);
     navigation.navigate('PanicMode');
   };
+  const handleMessagesPress = () => navigation.navigate('ContactsList');
+  const handlePhonePress = () => setShowCallScreen(true);
+  const handleEndCall = () => setShowCallScreen(false);
 
-  const handleCameraPress = () => {
-  console.log('Messages pressed');
-  navigation.navigate('ContactsList'); // 👈 Opens chat system
-};
-
-  const handlePhonePress = () => {
-    console.log('Phone pressed');
-    setShowCallScreen(true); // Show the fake call screen
-  };
-
-  const handleEndCall = () => {
-    console.log('Call ended');
-    setShowCallScreen(false); // Hide the fake call screen
-  };
-
-  const dynamicStyles = StyleSheet.create({
-    container: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      shadowColor: isDarkMode ? '#FFFFFF' : '#000',
-      shadowOffset: {
-        width: 0,
-        height: -2,
-      },
-      shadowOpacity: isDarkMode ? 0.3 : 0.15,
-      shadowRadius: 8,
-      elevation: 10,
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-    },
-    iconColor: isDarkMode ? '#E5E7EB' : '#6B7280',
-    activeIconColor: isDarkMode ? '#10B981' : '#10B981', // Green for active/Map
-  });
+  // === Theme colors ===
+  const iconColor = isDarkMode ? '#E5E7EB' : '#6B7280';
+  const backgroundColor = isDarkMode ? '#1F2937' : '#FFFFFF';
+  const shadowColor = isDarkMode ? '#FFFFFF' : '#000';
+  const shadowOpacity = isDarkMode ? 0.3 : 0.15;
 
   return (
     <>
@@ -93,10 +60,10 @@ const Footer = ({ theme = 'dark' }) => {
           <Text style={styles.sosText}>SOS</Text>
         </TouchableOpacity>
 
-        {/* message Icon */}
-        <TouchableOpacity 
-          style={styles.iconButton} 
-          onPress={handleCameraPress}
+        {/* Messages */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleMessagesPress}
           activeOpacity={0.7}
         >
           <Icon name="message-text-outline" size={24} color={iconColor} />

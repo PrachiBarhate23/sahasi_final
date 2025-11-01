@@ -4,7 +4,7 @@
 // Configure API base URL
 // =======================
 
-export const API_BASE_URL =  'https://better-ants-smash.loca.lt';
+export const API_BASE_URL =  'https://sweet-tigers-sing.loca.lt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ================= LOGIN API =================
