@@ -25,6 +25,8 @@ from email.mime.text import MIMEText
 from pyfcm import FCMNotification
 from .tasks import send_sos_push, send_sos_sms
 from .utils.capture_media import capture_photo, capture_video
+from .tasks import send_sos_sms, send_sos_push
+
 
 
 User = get_user_model()
@@ -98,6 +100,9 @@ class RegisterView(APIView):
 class LoginView(TokenObtainPairView):
     permission_classes = [permissions.AllowAny]
 
+    def get(self, request, *args, **kwargs):
+        return Response({"message": "Login endpoint is reachable. Use POST to log in."})
+    
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -156,7 +161,6 @@ class UpdateLocationView(generics.CreateAPIView):
         serializer.save(user=self.request.user)
 
 
-# 2. Get latest location of a user (only if trusted contact in future)
 class CurrentLocationView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -164,14 +168,16 @@ class CurrentLocationView(APIView):
         if user_id:
             user = get_object_or_404(User, id=user_id)
 
-        # Check: only allow self or trusted contact
+            # Check: only allow self or trusted contact
             if user != request.user:
                 if not TrustedContact.objects.filter(owner=user, phone=request.user.phone).exists() \
-                    and not TrustedContact.objects.filter(owner=user, email=request.user.email).exists():
-                        return Response({"detail": "Not authorized to see this user's location."}, status=status.HTTP_403_FORBIDDEN)
+                        and not TrustedContact.objects.filter(owner=user, email=request.user.email).exists():
+                    return Response(
+                        {"detail": "Not authorized to see this user's location."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
         else:
             user = request.user
-
 
         location = Location.objects.filter(user=user).order_by("-timestamp").first()
         if not location:
@@ -179,6 +185,29 @@ class CurrentLocationView(APIView):
 
         serializer = LocationSerializer(location)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # ✅ Add this for frontend location updates
+    def post(self, request):
+        lat = request.data.get("latitude")
+        lng = request.data.get("longitude")
+
+        if not lat or not lng:
+            return Response(
+                {"error": "Latitude and longitude are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Save or update user's latest location
+        location = Location.objects.create(
+            user=request.user,
+            latitude=lat,
+            longitude=lng
+        )
+
+        return Response(
+            {"message": "Location updated successfully."},
+            status=status.HTTP_200_OK
+        )
 
 class SafePlaceViewSet(viewsets.ModelViewSet):
     queryset = SafePlace.objects.all().order_by("-created_at")
@@ -298,17 +327,18 @@ class SOSAlertView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        user = request.user
         sos = SOSAlert.objects.create(
-            user=request.user,
+            user=user,
             message=request.data.get("message", "")
         )
 
-        # --- Capture emergency media ---
+        # --- Capture emergency media (optional) ---
         media_links = []
         try:
             photo = capture_photo()
             if photo:
-                m = EmergencyMedia.objects.create(user=request.user, file=photo, media_type="photo")
+                m = EmergencyMedia.objects.create(user=user, file=photo, media_type="photo")
                 media_links.append(request.build_absolute_uri(m.file.url))
         except Exception as e:
             print("Photo capture failed:", e)
@@ -316,37 +346,51 @@ class SOSAlertView(APIView):
         try:
             video = capture_video(duration=5)
             if video:
-                m = EmergencyMedia.objects.create(user=request.user, file=video, media_type="video")
+                m = EmergencyMedia.objects.create(user=user, file=video, media_type="video")
                 media_links.append(request.build_absolute_uri(m.file.url))
         except Exception as e:
             print("Video capture failed:", e)
 
-        # --- Latest location ---
-        location = Location.objects.filter(user=request.user).order_by("-timestamp").first()
-        lat_lng_text = ""
-        if location:
-            lat_lng_text = f"{location.latitude}, {location.longitude}\nGoogle Maps: https://maps.google.com/?q={location.latitude},{location.longitude}\n"
+        # ✅ --- Get current location (same as merged safe places) ---
+        lat = request.data.get("lat") or request.data.get("latitude")
+        lng = request.data.get("lng") or request.data.get("longitude")
 
-        # --- Build alert messages ---
-        alert_text_full = f"🚨 SOS ALERT 🚨\n\nUser: {request.user.get_full_name() or request.user.username}\nEmail: {request.user.email}\n"
+        # If not provided, fallback to latest saved location
+        if not lat or not lng:
+            latest_location = Location.objects.filter(user=user).order_by("-timestamp").first()
+            if latest_location:
+                lat, lng = latest_location.latitude, latest_location.longitude
+
+        # --- Build correct location message ---
+        if lat and lng:
+            try:
+                lat = float(lat)
+                lng = float(lng)
+                maps_link = f"https://maps.google.com/?q={lat},{lng}"
+                location_msg = f"My current location: {maps_link}"
+            except ValueError:
+                location_msg = "Location coordinates invalid."
+        else:
+            location_msg = "Location not available."
+
+        # --- Build SOS message ---
+        sms_msg = (
+            f"🚨 SOS ALERT 🚨\n"
+            f"I am in danger, please help me!\n\n"
+            f"{location_msg}\n"
+        )
+
         if sos.message:
-            alert_text_full += f"Message: {sos.message}\n"
-        if lat_lng_text:
-            alert_text_full += f"Last location: {lat_lng_text}"
+            sms_msg += f"\nAdditional message: {sos.message}\n"
+
         if media_links:
-            alert_text_full += "\nEmergency Media:\n" + "\n".join(media_links)
-        alert_text_full += "\nThis is an automatic emergency alert from the Sahasi app."
+            sms_msg += "\nEmergency Media:\n" + "\n".join(media_links)
 
-        # --- Truncate for SMS (Twilio limit ~1600 chars) ---
-        MAX_SMS_LENGTH = 1600
-        alert_text_sms = alert_text_full[:MAX_SMS_LENGTH]
+        sms_msg += "\n— Sahasi App Automatic Alert —"
 
-        # --- Collect recipients ---
-        contacts = request.user.trusted_contacts.all()
-        emails = [c.email for c in contacts if c.email]
+        # --- Collect trusted contacts ---
+        contacts = user.trusted_contacts.all()
         phones = []
-        tokens = [c.fcm_token for c in contacts if c.fcm_token]
-
         for c in contacts:
             if c.phone:
                 num = c.phone
@@ -354,21 +398,20 @@ class SOSAlertView(APIView):
                     num = "+91" + num
                 phones.append(num)
 
-        # --- Send notifications via Celery ---
-        if emails:
-            # Use Gmail OAuth2 helper to send email asynchronously
-            send_sos_email.delay("🚨 SOS Alert", alert_text_full, emails)
-        if tokens:
-            send_sos_push.delay(tokens, "🚨 SOS Alert", alert_text_full)
+        # --- Send SMS only ---
         if phones:
-            send_sos_sms.delay(alert_text_sms, phones)
+            send_sos_sms.delay(sms_msg, phones)
+        # Push notifications commented out
+        # send_sos_push.delay(tokens, "🚨 SOS Alert", sms_msg)
 
         return Response({
-            "detail": "SOS triggered. Notifications are being sent in the background.",
-            "media_links": media_links,
-            "phones": phones,  # for debug
-            "emails": emails
+            "detail": "SOS triggered successfully. Accurate location sent via SMS.",
+            "message": sms_msg,
+            "latitude": lat,
+            "longitude": lng,
+            "phones": phones,
         }, status=status.HTTP_201_CREATED)
+
 
 
 

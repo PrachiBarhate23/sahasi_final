@@ -1,4 +1,3 @@
-// ==================== FakeCallSetupScreen.jsx ====================
 import React, { useState } from 'react';
 import {
   View,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Header from '../components/Header'; // ✅ import header
 import { sharedStyles } from '../screens/sharedStyles'; // adjust path as needed
 
 export const FakeCallSetupScreen = ({ route }) => {
@@ -30,7 +30,7 @@ export const FakeCallSetupScreen = ({ route }) => {
   });
 
   const handleTestCall = () => {
-    Alert.alert('Test Call', 'Fake call will start in ' + callSettings.delaySeconds + ' seconds');
+    Alert.alert('Test Call', `Fake call will start in ${callSettings.delaySeconds} seconds`);
     console.log('Testing fake call with settings:', callSettings);
   };
 
@@ -46,25 +46,33 @@ export const FakeCallSetupScreen = ({ route }) => {
         backgroundColor={isDark ? '#111827' : '#F3F4F6'}
       />
 
-      <View
-        style={[
-          sharedStyles.screenHeader,
-          { borderBottomColor: isDark ? '#374151' : '#E5E7EB' },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={sharedStyles.backButton}>
-          <Icon name="arrow-back" size={24} color={isDark ? '#F9FAFB' : '#111827'} />
-        </TouchableOpacity>
-        <Text style={[sharedStyles.screenTitle, { color: isDark ? '#F9FAFB' : '#111827' }]}>
-          Fake Call Setup
-        </Text>
-        <View style={sharedStyles.placeholder} />
-      </View>
+      {/* ✅ Floating Header */}
+      <Header theme={theme} />
 
       <ScrollView
         style={sharedStyles.scrollView}
-        contentContainerStyle={sharedStyles.contentContainer}
+        contentContainerStyle={[
+          sharedStyles.contentContainer,
+          { paddingTop: 120 }, // ✅ space for header
+        ]}
       >
+        {/* Back + Title Section */}
+        <View
+          style={[
+            sharedStyles.screenHeader,
+            { borderBottomColor: isDark ? '#374151' : '#E5E7EB' },
+          ]}
+        >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={sharedStyles.backButton}>
+            <Icon name="arrow-back" size={24} color={isDark ? '#F9FAFB' : '#111827'} />
+          </TouchableOpacity>
+          <Text style={[sharedStyles.screenTitle, { color: isDark ? '#F9FAFB' : '#111827' }]}>
+            Fake Call Setup
+          </Text>
+          <View style={sharedStyles.placeholder} />
+        </View>
+
+        {/* Info Section */}
         <View style={[sharedStyles.infoCard, { backgroundColor: isDark ? '#1F2937' : '#EFF6FF' }]}>
           <Icon name="info" size={24} color="#3B82F6" />
           <Text style={[sharedStyles.infoText, { color: isDark ? '#93C5FD' : '#1E40AF' }]}>
@@ -72,57 +80,38 @@ export const FakeCallSetupScreen = ({ route }) => {
           </Text>
         </View>
 
+        {/* Caller Details */}
         <View style={sharedStyles.formSection}>
           <Text style={[sharedStyles.sectionTitle, { color: isDark ? '#F9FAFB' : '#111827' }]}>
             Caller Details
           </Text>
 
-          <View style={sharedStyles.inputGroup}>
-            <Text style={[sharedStyles.label, { color: isDark ? '#D1D5DB' : '#374151' }]}>
-              Caller Name
-            </Text>
-            <TextInput
-              style={[
-                sharedStyles.input,
-                {
-                  backgroundColor: isDark ? '#374151' : '#FFFFFF',
-                  color: isDark ? '#F9FAFB' : '#111827',
-                  borderColor: isDark ? '#4B5563' : '#E5E7EB',
-                },
-              ]}
-              value={callSettings.callerName}
-              onChangeText={(text) =>
-                setCallSettings({ ...callSettings, callerName: text })
-              }
-              placeholder="Enter caller name"
-              placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
-            />
-          </View>
+          {[
+            { label: 'Caller Name', key: 'callerName', keyboardType: 'default' },
+            { label: 'Caller Number', key: 'callerNumber', keyboardType: 'phone-pad' },
+          ].map((field, i) => (
+            <View style={sharedStyles.inputGroup} key={i}>
+              <Text style={[sharedStyles.label, { color: isDark ? '#D1D5DB' : '#374151' }]}>
+                {field.label}
+              </Text>
+              <TextInput
+                style={[
+                  sharedStyles.input,
+                  {
+                    backgroundColor: isDark ? '#374151' : '#FFFFFF',
+                    color: isDark ? '#F9FAFB' : '#111827',
+                    borderColor: isDark ? '#4B5563' : '#E5E7EB',
+                  },
+                ]}
+                value={callSettings[field.key]}
+                onChangeText={(text) => setCallSettings({ ...callSettings, [field.key]: text })}
+                keyboardType={field.keyboardType}
+                placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+              />
+            </View>
+          ))}
 
-          <View style={sharedStyles.inputGroup}>
-            <Text style={[sharedStyles.label, { color: isDark ? '#D1D5DB' : '#374151' }]}>
-              Caller Number
-            </Text>
-            <TextInput
-              style={[
-                sharedStyles.input,
-                {
-                  backgroundColor: isDark ? '#374151' : '#FFFFFF',
-                  color: isDark ? '#F9FAFB' : '#111827',
-                  borderColor: isDark ? '#4B5563' : '#E5E7EB',
-                },
-              ]}
-              value={callSettings.callerNumber}
-              onChangeText={(text) =>
-                setCallSettings({ ...callSettings, callerNumber: text })
-              }
-              placeholder="Enter phone number"
-              keyboardType="phone-pad"
-              placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
-            />
-          </View>
-          
-          {/* Ringtone and Delay inputs */}
+          {/* Ringtone and Delay */}
           <View style={sharedStyles.inputGroup}>
             <Text style={[sharedStyles.label, { color: isDark ? '#D1D5DB' : '#374151' }]}>
               Ringtone
@@ -167,15 +156,27 @@ export const FakeCallSetupScreen = ({ route }) => {
           </View>
         </View>
 
-        {/* Call Settings Toggles */}
+        {/* Toggles */}
         <View style={sharedStyles.formSection}>
           <Text style={[sharedStyles.sectionTitle, { color: isDark ? '#F9FAFB' : '#111827' }]}>
             Call Settings
           </Text>
 
           {[
-            { icon: 'vibration', title: 'Enable Vibration', description: 'Vibrate on incoming call', value: callSettings.enableVibration, setter: (val) => setCallSettings({ ...callSettings, enableVibration: val }) },
-            { icon: 'phone-forwarded', title: 'Auto Answer', description: 'Automatically answer the call', value: callSettings.autoAnswer, setter: (val) => setCallSettings({ ...callSettings, autoAnswer: val }) },
+            {
+              icon: 'vibration',
+              title: 'Enable Vibration',
+              description: 'Vibrate on incoming call',
+              value: callSettings.enableVibration,
+              setter: (val) => setCallSettings({ ...callSettings, enableVibration: val }),
+            },
+            {
+              icon: 'phone-forwarded',
+              title: 'Auto Answer',
+              description: 'Automatically answer the call',
+              value: callSettings.autoAnswer,
+              setter: (val) => setCallSettings({ ...callSettings, autoAnswer: val }),
+            },
           ].map((toggle, i) => (
             <View
               key={i}
@@ -208,12 +209,16 @@ export const FakeCallSetupScreen = ({ route }) => {
           ))}
         </View>
 
+        {/* Buttons */}
         <TouchableOpacity style={sharedStyles.testButton} onPress={handleTestCall}>
           <Icon name="play-arrow" size={24} color="#FFFFFF" />
           <Text style={sharedStyles.testButtonText}>Test Fake Call</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={sharedStyles.saveButton} onPress={() => Alert.alert('Success', 'Settings saved!')}>
+        <TouchableOpacity
+          style={sharedStyles.saveButton}
+          onPress={() => Alert.alert('Success', 'Settings saved!')}
+        >
           <Text style={sharedStyles.saveButtonText}>Save Settings</Text>
         </TouchableOpacity>
       </ScrollView>

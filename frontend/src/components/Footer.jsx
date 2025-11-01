@@ -1,60 +1,37 @@
 import React, { useState } from 'react';
-import { Vibration, View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import {
+  Vibration,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
 import FakeCallScreen from '../screens/FakeCallScreen';
 
-const Footer = ({ theme = 'dark', navigation }) => {
+const Footer = ({ theme = 'dark' }) => {
+  const navigation = useNavigation(); // ✅ Safe navigation hook
   const isDarkMode = theme === 'dark';
   const [showCallScreen, setShowCallScreen] = useState(false);
 
+  // === Navigation handlers ===
   const handleHomePress = () => navigation.navigate('HomePage');
   const handleMapPress = () => navigation.navigate('MapPage');
   const handleSOSPress = () => {
     Vibration.vibrate(100);
     navigation.navigate('PanicMode');
   };
+  const handleMessagesPress = () => navigation.navigate('ContactsList');
+  const handlePhonePress = () => setShowCallScreen(true);
+  const handleEndCall = () => setShowCallScreen(false);
 
-  const handleCameraPress = () => {
-  console.log('Messages pressed');
-  navigation.navigate('ContactsList'); // 👈 Opens chat system
-};
-
-  const handlePhonePress = () => {
-    console.log('Phone pressed');
-    setShowCallScreen(true); // Show the fake call screen
-  };
-
-  const handleEndCall = () => {
-    console.log('Call ended');
-    setShowCallScreen(false); // Hide the fake call screen
-  };
-
-  const dynamicStyles = StyleSheet.create({
-    container: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      shadowColor: isDarkMode ? '#FFFFFF' : '#000',
-      shadowOffset: {
-        width: 0,
-        height: -2,
-      },
-      shadowOpacity: isDarkMode ? 0.3 : 0.15,
-      shadowRadius: 8,
-      elevation: 10,
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-    },
-    iconColor: isDarkMode ? '#E5E7EB' : '#6B7280',
-    activeIconColor: isDarkMode ? '#10B981' : '#10B981', // Green for active/Map
-  });
+  // === Theme colors ===
+  const iconColor = isDarkMode ? '#E5E7EB' : '#6B7280';
+  const backgroundColor = isDarkMode ? '#1F2937' : '#FFFFFF';
+  const shadowColor = isDarkMode ? '#FFFFFF' : '#000';
+  const shadowOpacity = isDarkMode ? 0.3 : 0.15;
 
   return (
     <>
@@ -62,40 +39,54 @@ const Footer = ({ theme = 'dark', navigation }) => {
         style={[
           styles.container,
           {
-            backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-            shadowColor: isDarkMode ? '#FFFFFF' : '#000',
-            shadowOpacity: isDarkMode ? 0.3 : 0.15,
+            backgroundColor,
+            shadowColor,
+            shadowOpacity,
           },
         ]}
       >
+        {/* Home */}
         <TouchableOpacity style={styles.iconButton} onPress={handleHomePress}>
-          <Icon name="home-outline" size={24} color={isDarkMode ? '#E5E7EB' : '#6B7280'} />
+          <Icon name="home-outline" size={24} color={iconColor} />
         </TouchableOpacity>
 
+        {/* Map */}
         <TouchableOpacity style={styles.iconButton} onPress={handleMapPress}>
-          <Icon name="map-marker-radius-outline" size={24} color={isDarkMode ? '#E5E7EB' : '#6B7280'} />
+          <Icon name="map-marker-radius-outline" size={24} color={iconColor} />
         </TouchableOpacity>
 
+        {/* SOS */}
         <TouchableOpacity style={styles.sosButton} onPress={handleSOSPress}>
           <Text style={styles.sosText}>SOS</Text>
         </TouchableOpacity>
 
-        {/* message Icon */}
-        <TouchableOpacity 
-          style={styles.iconButton} 
-          onPress={handleCameraPress}
+        {/* Messages */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleMessagesPress}
           activeOpacity={0.7}
         >
-          <Icon name="message-text-outline" size={24} color={dynamicStyles.iconColor} />
+          <Icon name="message-text-outline" size={24} color={iconColor} />
         </TouchableOpacity>
 
+        {/* Fake Call */}
         <TouchableOpacity style={styles.iconButton} onPress={handlePhonePress}>
-          <Icon name="phone-outline" size={24} color={isDarkMode ? '#E5E7EB' : '#6B7280'} />
+          <Icon name="phone-outline" size={24} color={iconColor} />
         </TouchableOpacity>
       </View>
 
-      <Modal visible={showCallScreen} animationType="fade" onRequestClose={handleEndCall} statusBarTranslucent>
-        <FakeCallScreen callerName="Mom" callerSubtitle="Mobile" onEnd={handleEndCall} />
+      {/* === Fake Call Modal === */}
+      <Modal
+        visible={showCallScreen}
+        animationType="fade"
+        onRequestClose={handleEndCall}
+        statusBarTranslucent
+      >
+        <FakeCallScreen
+          callerName="Mom"
+          callerSubtitle="Mobile"
+          onEnd={handleEndCall}
+        />
       </Modal>
     </>
   );
@@ -110,15 +101,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    elevation: 10,
     shadowOffset: { width: 0, height: -2 },
     shadowRadius: 8,
+    elevation: 10,
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
   },
-  iconButton: { padding: 8, alignItems: 'center', justifyContent: 'center', minWidth: 40, minHeight: 40 },
+  iconButton: {
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 40,
+    minHeight: 40,
+  },
   sosButton: {
     width: 60,
     height: 60,
@@ -132,7 +129,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  sosText: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold', letterSpacing: 1 },
+  sosText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
 });
 
 export default Footer;

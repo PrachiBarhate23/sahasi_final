@@ -4,7 +4,7 @@
 // Configure API base URL
 // =======================
 
-export const API_BASE_URL =  'http://127.0.0.1:8000';
+export const API_BASE_URL =  'https://better-ants-smash.loca.lt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ================= LOGIN API =================
@@ -213,3 +213,89 @@ export const getSafePlaces = async (lat, lng) => {
     return { ok: false, data: [] };
   }
 };
+// ================= CURRENT LOCATION (FETCH + UPDATE) =================
+
+// ✅ Get current location from backend (GET)
+export const fetchCurrentLocation = async () => {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    if (!token) throw new Error("No auth token found");
+
+    const res = await fetch(`${API_BASE_URL}/api/users/location/current/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error("fetchCurrentLocation Error:", err);
+    return { ok: false, data: { detail: err.message } };
+  }
+};
+
+// ✅ Update user location to backend (POST)
+export const updateUserLocation = async (latitude, longitude) => {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    if (!token) throw new Error("No auth token found");
+
+    const res = await fetch(`${API_BASE_URL}/api/users/location/update/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ latitude, longitude }),
+    });
+
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { detail: text };
+    }
+
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error("updateUserLocation Error:", err);
+    return { ok: false, data: { detail: err.message } };
+  }
+};
+
+
+// ================= SEND SOS ALERT =================
+export const sendSOSAlert = async (message = "") => {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    if (!token) throw new Error("No auth token found");
+
+    const res = await fetch(`${API_BASE_URL}/api/users/sos/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ message }),
+    });
+
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("Invalid JSON response:", text);
+      data = { detail: text };
+    }
+
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error("sendSOSAlert Error:", err);
+    return { ok: false, data: { detail: err.message } };
+  }
+};
+
