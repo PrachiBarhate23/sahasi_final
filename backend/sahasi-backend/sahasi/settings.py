@@ -6,6 +6,7 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = ["192.168.1.2", "localhost", "127.0.0.1"]
@@ -28,9 +29,6 @@ INSTALLED_APPS = [
 
     # Local apps
     "users",
-
-    'rest_framework',
-    'your_chat_app_name', 
 ]
 
 MIDDLEWARE = [
@@ -155,6 +153,6 @@ FAST2SMS_API_KEY = "73VNE1OjsHkS6zl4bdvfQpcDngKPAt0exqYoCWuw82GXi5Fah9QaCKtzxSNA
 # --- Celery / Redis ---
 CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
-CELERY_TASK_ALWAYS_EAGER = True # ensure tasks run async via worker
+CELERY_TASK_ALWAYS_EAGER = False# ensure tasks run async via worker
 
 TWOFACTOR_API_KEY = config("TWOFACTOR_API_KEY", default="")

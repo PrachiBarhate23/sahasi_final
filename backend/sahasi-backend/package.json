@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@prisma/client": "^6.15.0",
+    "celery": "^0.0.0",
     "twilio": "^5.8.2"
   },
   "devDependencies": {
