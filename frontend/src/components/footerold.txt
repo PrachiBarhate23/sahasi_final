@@ -1,22 +1,12 @@
 import React, { useState } from 'react';
-import {
-  Vibration,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
+import { Vibration, View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native';
 import FakeCallScreen from '../screens/FakeCallScreen';
 
-const Footer = ({ theme = 'dark' }) => {
-  const navigation = useNavigation(); // ✅ Safe navigation hook
+const Footer = ({ theme = 'dark', navigation }) => {
   const isDarkMode = theme === 'dark';
   const [showCallScreen, setShowCallScreen] = useState(false);
 
-  // === Navigation handlers ===
   const handleHomePress = () => navigation.navigate('HomePage');
   const handleMapPress = () => navigation.navigate('MapPage');
   const handleSOSPress = () => {
@@ -72,23 +62,20 @@ const Footer = ({ theme = 'dark' }) => {
         style={[
           styles.container,
           {
-            backgroundColor,
-            shadowColor,
-            shadowOpacity,
+            backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+            shadowColor: isDarkMode ? '#FFFFFF' : '#000',
+            shadowOpacity: isDarkMode ? 0.3 : 0.15,
           },
         ]}
       >
-        {/* Home */}
         <TouchableOpacity style={styles.iconButton} onPress={handleHomePress}>
-          <Icon name="home-outline" size={24} color={iconColor} />
+          <Icon name="home-outline" size={24} color={isDarkMode ? '#E5E7EB' : '#6B7280'} />
         </TouchableOpacity>
 
-        {/* Map */}
         <TouchableOpacity style={styles.iconButton} onPress={handleMapPress}>
-          <Icon name="map-marker-radius-outline" size={24} color={iconColor} />
+          <Icon name="map-marker-radius-outline" size={24} color={isDarkMode ? '#E5E7EB' : '#6B7280'} />
         </TouchableOpacity>
 
-        {/* SOS */}
         <TouchableOpacity style={styles.sosButton} onPress={handleSOSPress}>
           <Text style={styles.sosText}>SOS</Text>
         </TouchableOpacity>
@@ -99,27 +86,16 @@ const Footer = ({ theme = 'dark' }) => {
           onPress={handleCameraPress}
           activeOpacity={0.7}
         >
-          <Icon name="message-text-outline" size={24} color={iconColor} />
+          <Icon name="message-text-outline" size={24} color={dynamicStyles.iconColor} />
         </TouchableOpacity>
 
-        {/* Fake Call */}
         <TouchableOpacity style={styles.iconButton} onPress={handlePhonePress}>
-          <Icon name="phone-outline" size={24} color={iconColor} />
+          <Icon name="phone-outline" size={24} color={isDarkMode ? '#E5E7EB' : '#6B7280'} />
         </TouchableOpacity>
       </View>
 
-      {/* === Fake Call Modal === */}
-      <Modal
-        visible={showCallScreen}
-        animationType="fade"
-        onRequestClose={handleEndCall}
-        statusBarTranslucent
-      >
-        <FakeCallScreen
-          callerName="Mom"
-          callerSubtitle="Mobile"
-          onEnd={handleEndCall}
-        />
+      <Modal visible={showCallScreen} animationType="fade" onRequestClose={handleEndCall} statusBarTranslucent>
+        <FakeCallScreen callerName="Mom" callerSubtitle="Mobile" onEnd={handleEndCall} />
       </Modal>
     </>
   );
@@ -134,21 +110,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    elevation: 10,
     shadowOffset: { width: 0, height: -2 },
     shadowRadius: 8,
-    elevation: 10,
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
   },
-  iconButton: {
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 40,
-    minHeight: 40,
-  },
+  iconButton: { padding: 8, alignItems: 'center', justifyContent: 'center', minWidth: 40, minHeight: 40 },
   sosButton: {
     width: 60,
     height: 60,
@@ -162,12 +132,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  sosText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
+  sosText: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold', letterSpacing: 1 },
 });
 
 export default Footer;

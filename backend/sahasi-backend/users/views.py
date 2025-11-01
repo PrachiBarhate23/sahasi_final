@@ -346,7 +346,7 @@ class SOSAlertView(APIView):
         try:
             video = capture_video(duration=5)
             if video:
-                m = EmergencyMedia.objects.create(user=user, file=video, media_type="video")
+                m = EmergencyMedia.objects.create(user=request.user, file=video, media_type="video")
                 media_links.append(request.build_absolute_uri(m.file.url))
         except Exception as e:
             print("Video capture failed:", e)
