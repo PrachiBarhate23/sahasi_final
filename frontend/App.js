@@ -10,12 +10,8 @@ import HomePage from './src/screens/HomePage';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import SignInScreen from './src/screens/SignInScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
-<<<<<<< HEAD
 import MapViewWeb from './src/components/MapViewWeb'; // ✅ fixed import
 import MapPage from './src/screens/MapPage'; // your mobile map page
-=======
-import MapPage from './src/screens/MapPage';
->>>>>>> fd0f84ebedd77e77686635c7a9ae5ca93652c7ba
 import PanicModeScreen from './src/screens/PanicModeScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { ProfileSettingsScreen } from './src/screens/ProfileSettingsScreen';
