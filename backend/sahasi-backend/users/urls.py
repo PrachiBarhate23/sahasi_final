@@ -27,5 +27,6 @@ urlpatterns = [
     path("fcm/update/", UpdateFCMTokenView.as_view(), name="update_fcm"),
     path("sos/", SOSAlertView.as_view(), name="sos_alert"),
     path("auth/google/", GoogleAuthView.as_view(), name="google_auth"),
+    
 ]
 

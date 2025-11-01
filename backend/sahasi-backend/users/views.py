@@ -298,9 +298,12 @@ class SOSAlertView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        sos = SOSAlert.objects.create(user=request.user, message=request.data.get("message", ""))
+        sos = SOSAlert.objects.create(
+            user=request.user,
+            message=request.data.get("message", "")
+        )
 
-        # --- Try to capture emergency media (failsafe) ---
+        # --- Capture emergency media ---
         media_links = []
         try:
             photo = capture_photo()
@@ -309,6 +312,7 @@ class SOSAlertView(APIView):
                 media_links.append(request.build_absolute_uri(m.file.url))
         except Exception as e:
             print("Photo capture failed:", e)
+
         try:
             video = capture_video(duration=5)
             if video:
@@ -317,49 +321,54 @@ class SOSAlertView(APIView):
         except Exception as e:
             print("Video capture failed:", e)
 
-        # --- Latest location (if available) ---
+        # --- Latest location ---
         location = Location.objects.filter(user=request.user).order_by("-timestamp").first()
-
-        # --- Build alert text ---
-        alert_text = "🚨 SOS ALERT 🚨\n\n"
-        alert_text += f"User: {request.user.get_full_name() or request.user.username}\n"
-        alert_text += f"Email: {request.user.email}\n\n"
-        if sos.message:
-            alert_text += f"Message: {sos.message}\n"
+        lat_lng_text = ""
         if location:
-            alert_text += f"Last location: {location.latitude}, {location.longitude}\n"
-            alert_text += f"Google Maps: https://maps.google.com/?q={location.latitude},{location.longitude}\n"
+            lat_lng_text = f"{location.latitude}, {location.longitude}\nGoogle Maps: https://maps.google.com/?q={location.latitude},{location.longitude}\n"
+
+        # --- Build alert messages ---
+        alert_text_full = f"🚨 SOS ALERT 🚨\n\nUser: {request.user.get_full_name() or request.user.username}\nEmail: {request.user.email}\n"
+        if sos.message:
+            alert_text_full += f"Message: {sos.message}\n"
+        if lat_lng_text:
+            alert_text_full += f"Last location: {lat_lng_text}"
         if media_links:
-            alert_text += "\nEmergency Media:\n" + "\n".join(media_links)
-        alert_text += "\nThis is an automatic emergency alert from the Sahasi app."
+            alert_text_full += "\nEmergency Media:\n" + "\n".join(media_links)
+        alert_text_full += "\nThis is an automatic emergency alert from the Sahasi app."
+
+        # --- Truncate for SMS (Twilio limit ~1600 chars) ---
+        MAX_SMS_LENGTH = 1600
+        alert_text_sms = alert_text_full[:MAX_SMS_LENGTH]
 
         # --- Collect recipients ---
         contacts = request.user.trusted_contacts.all()
         emails = [c.email for c in contacts if c.email]
-        phones = [c.phone for c in contacts if c.phone]
+        phones = []
         tokens = [c.fcm_token for c in contacts if c.fcm_token]
 
+        for c in contacts:
+            if c.phone:
+                num = c.phone
+                if not num.startswith("+"):
+                    num = "+91" + num
+                phones.append(num)
 
-        # --- Dispatch notifications asynchronously (Celery) ---
+        # --- Send notifications via Celery ---
         if emails:
-            send_sos_email.delay("🚨 SOS Alert", alert_text, emails)
+            # Use Gmail OAuth2 helper to send email asynchronously
+            send_sos_email.delay("🚨 SOS Alert", alert_text_full, emails)
         if tokens:
-            send_sos_push.delay(tokens, "🚨 SOS Alert", alert_text)
+            send_sos_push.delay(tokens, "🚨 SOS Alert", alert_text_full)
         if phones:
-            send_sos_sms.delay(alert_text, phones)
+            send_sos_sms.delay(alert_text_sms, phones)
 
         return Response({
             "detail": "SOS triggered. Notifications are being sent in the background.",
             "media_links": media_links,
+            "phones": phones,  # for debug
+            "emails": emails
         }, status=status.HTTP_201_CREATED)
-
-    def delete(self, request):
-        sos = SOSAlert.objects.filter(user=request.user, is_active=True).last()
-        if sos:
-            sos.is_active = False
-            sos.save()
-            return Response({"detail": "SOS alert cancelled."}, status=status.HTTP_200_OK)
-        return Response({"detail": "No active SOS found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 
