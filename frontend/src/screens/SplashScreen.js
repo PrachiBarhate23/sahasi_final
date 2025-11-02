@@ -87,7 +87,7 @@ const SplashScreen = ({ navigation }) => {
 
       <View style={styles.buttonContainer}>
         <View style={styles.socialButtonsRow}>
-          <TouchableOpacity
+          {/*<TouchableOpacity
             style={styles.socialButton}
             onPress={() => console.log('Google sign-in pressed')}
             activeOpacity={0.7}
@@ -97,10 +97,10 @@ const SplashScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.socialButton}
             onPress={() => console.log('Phone sign-in pressed')}
-            activeOpacity={0.7}
+            // activeOpacity={0.7}
           >
             <Text style={styles.phoneIcon}>📞</Text>
-          </TouchableOpacity>
+          </TouchableOpacity>*/}
         </View>
         <TouchableOpacity
           style={styles.getStartedButton}

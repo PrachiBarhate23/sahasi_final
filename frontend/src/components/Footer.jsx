@@ -11,9 +11,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import FakeCallScreen from '../screens/FakeCallScreen';
 
-const Footer = ({ theme = 'dark' }) => {
-  const navigation = useNavigation(); // ✅ Safe navigation hook
-  const isDarkMode = theme === 'dark';
+const Footer = () => {
+  const navigation = useNavigation();
   const [showCallScreen, setShowCallScreen] = useState(false);
 
   // === Navigation handlers ===
@@ -23,15 +22,16 @@ const Footer = ({ theme = 'dark' }) => {
     Vibration.vibrate(100);
     navigation.navigate('PanicMode');
   };
-  const handleMessagesPress = () => navigation.navigate('ContactsList');
+
+  // camera instead of messages
+  const handleCameraPress = () => navigation.navigate('CameraPage');
+
   const handlePhonePress = () => setShowCallScreen(true);
   const handleEndCall = () => setShowCallScreen(false);
 
-  // === Theme colors ===
-  const iconColor = isDarkMode ? '#E5E7EB' : '#6B7280';
-  const backgroundColor = isDarkMode ? '#1F2937' : '#FFFFFF';
-  const shadowColor = isDarkMode ? '#FFFFFF' : '#000';
-  const shadowOpacity = isDarkMode ? 0.3 : 0.15;
+  const iconColor = '#6B7280';         // LIGHT default only
+  const backgroundColor = '#FFFFFF';
+  const shadowColor = '#000';
 
   return (
     <>
@@ -41,32 +41,29 @@ const Footer = ({ theme = 'dark' }) => {
           {
             backgroundColor,
             shadowColor,
-            shadowOpacity,
+            shadowOpacity: 0.15
           },
         ]}
       >
-        {/* Home */}
         <TouchableOpacity style={styles.iconButton} onPress={handleHomePress}>
           <Icon name="home-outline" size={24} color={iconColor} />
         </TouchableOpacity>
 
-        {/* Map */}
         <TouchableOpacity style={styles.iconButton} onPress={handleMapPress}>
           <Icon name="map-marker-radius-outline" size={24} color={iconColor} />
         </TouchableOpacity>
 
-        {/* SOS */}
         <TouchableOpacity style={styles.sosButton} onPress={handleSOSPress}>
           <Text style={styles.sosText}>SOS</Text>
         </TouchableOpacity>
 
-        {/* Messages */}
+        {/* CAMERA ICON */}
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={handleMessagesPress}
+          onPress={handleCameraPress}
           activeOpacity={0.7}
         >
-          <Icon name="message-text-outline" size={24} color={iconColor} />
+          <Icon name="camera-outline" size={24} color={iconColor} />
         </TouchableOpacity>
 
         {/* Fake Call */}
@@ -75,7 +72,6 @@ const Footer = ({ theme = 'dark' }) => {
         </TouchableOpacity>
       </View>
 
-      {/* === Fake Call Modal === */}
       <Modal
         visible={showCallScreen}
         animationType="fade"

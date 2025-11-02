@@ -16,6 +16,19 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserProfile, updateUserProfile } from '../api';
 
+// 🟢 NEW: Utility function to get initials from the name
+const getInitials = (name) => {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    
+    // Get the first initial of the first and last parts of the name
+    const firstNameInitial = parts[0][0];
+    const lastNameInitial = parts[parts.length - 1][0];
+    
+    return `${firstNameInitial}${lastNameInitial}`.toUpperCase();
+};
+
 export const ProfileSettingsScreen = ({ route }) => {
   const navigation = useNavigation();
   const theme = route?.params?.theme || 'light';
@@ -68,66 +81,65 @@ export const ProfileSettingsScreen = ({ route }) => {
   }, []);
 
   // Handle profile save
- // Handle profile save
-const handleSave = async () => {
-  setSaving(true);
-  try {
-    const token = await AsyncStorage.getItem('authToken');
-    if (!token) {
-      Alert.alert('Error', 'No auth token found');
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        Alert.alert('Error', 'No auth token found');
+        setSaving(false);
+        return;
+      }
+
+      const [first_name, ...last_nameArr] = profile.name.split(' ');
+      const last_name = last_nameArr.join(' ');
+
+      const res = await updateUserProfile(token, {
+        first_name,
+        last_name,
+        email: profile.email,
+        phone_number: profile.phone,
+        address: profile.address,
+        emergency_contact: profile.emergencyContact,
+        blood_group: profile.bloodGroup,
+      });
+
+      if (res.ok && res.data) {
+        // ✅ Navigate to ProfileCompletedScreen after successful save
+        navigation.replace('ProfileCompletedScreen', {
+          name: `${res.data.first_name || ''} ${res.data.last_name || ''}`.trim(),
+        });
+
+        // Update AsyncStorage for autofill
+        await AsyncStorage.setItem(
+          'userData',
+          JSON.stringify({
+            firstName: res.data.first_name,
+            lastName: res.data.last_name,
+            phoneNumber: res.data.phone_number,
+            email: res.data.email,
+            username: res.data.username || '',
+          })
+        );
+
+        setProfile({
+          name: `${res.data.first_name || ''} ${res.data.last_name || ''}`.trim(),
+          email: res.data.email || '',
+          phone: res.data.phone_number || '',
+          address: res.data.address || '',
+          emergencyContact: res.data.emergency_contact || '',
+          bloodGroup: res.data.blood_group || '',
+        });
+      } else {
+        Alert.alert('Error', res.data?.detail || 'Failed to update profile');
+      }
+    } catch (err) {
+      console.error('Update Profile Error:', err);
+      Alert.alert('Error', 'Something went wrong while updating profile');
+    } finally {
       setSaving(false);
-      return;
     }
-
-    const [first_name, ...last_nameArr] = profile.name.split(' ');
-    const last_name = last_nameArr.join(' ');
-
-    const res = await updateUserProfile(token, {
-      first_name,
-      last_name,
-      email: profile.email,
-      phone_number: profile.phone,
-      address: profile.address,
-      emergency_contact: profile.emergencyContact,
-      blood_group: profile.bloodGroup,
-    });
-
-    if (res.ok && res.data) {
-      // ✅ Navigate to ProfileCompletedScreen after successful save
-      navigation.replace('ProfileCompletedScreen', {
-        name: `${res.data.first_name || ''} ${res.data.last_name || ''}`.trim(),
-      });
-
-      // Update AsyncStorage for autofill
-      await AsyncStorage.setItem(
-        'userData',
-        JSON.stringify({
-          firstName: res.data.first_name,
-          lastName: res.data.last_name,
-          phoneNumber: res.data.phone_number,
-          email: res.data.email,
-          username: res.data.username || '',
-        })
-      );
-
-      setProfile({
-        name: `${res.data.first_name || ''} ${res.data.last_name || ''}`.trim(),
-        email: res.data.email || '',
-        phone: res.data.phone_number || '',
-        address: res.data.address || '',
-        emergencyContact: res.data.emergency_contact || '',
-        bloodGroup: res.data.blood_group || '',
-      });
-    } else {
-      Alert.alert('Error', res.data?.detail || 'Failed to update profile');
-    }
-  } catch (err) {
-    console.error('Update Profile Error:', err);
-    Alert.alert('Error', 'Something went wrong while updating profile');
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
 
   if (loading) {
@@ -154,12 +166,13 @@ const handleSave = async () => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.profilePictureSection}>
           <View style={styles.profilePictureContainer}>
-            <View style={[styles.profilePicture, { backgroundColor: isDark ? '#4B5563' : '#E5E7EB' }]}>
-              <Icon name="person" size={60} color={isDark ? '#9CA3AF' : '#6B7280'} />
+            {/* 🟢 UPDATED: Display initials with purple background */}
+            <View style={styles.initialsAvatar}>
+                <Text style={styles.initialsText}>
+                    {getInitials(profile.name)}
+                </Text>
             </View>
-            <TouchableOpacity style={styles.editPhotoButton}>
-              <Icon name="camera-alt" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            {/* ❌ REMOVED: The TouchableOpacity for the camera icon */}
           </View>
           <Text style={[styles.profileName, { color: isDark ? '#F9FAFB' : '#111827' }]}>{profile.name}</Text>
         </View>
@@ -210,13 +223,34 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   contentContainer: { paddingBottom: 40 },
   screenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  screenTitle: { fontSize: 18, fontWeight: '700' },
+  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginTop:30 },
+  screenTitle: { fontSize: 18, fontWeight: '700', marginTop:30 },
   placeholder: { width: 40 },
   profilePictureSection: { alignItems: 'center', paddingVertical: 24 },
   profilePictureContainer: { position: 'relative', marginBottom: 16 },
-  profilePicture: { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center' },
+  
+  // 🟢 NEW STYLE: Initials avatar container (replaces old profilePicture view)
+  initialsAvatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#8B5CF6', // Purple background
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // 🟢 NEW STYLE: Initials text
+  initialsText: {
+    color: '#FFFFFF',
+    fontSize: 48, // Large font size for visibility
+    fontWeight: '700',
+  },
+  
+  // ❌ REMOVED: Old profilePicture style is obsolete but included below for reference if needed
+  profilePicture: { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center' }, 
+  
+  // ❌ REMOVED: Edit button style is now unused
   editPhotoButton: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#3B82F6', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  
   profileName: { fontSize: 22, fontWeight: '700' },
   formSection: { paddingHorizontal: 16, marginBottom: 16 },
   inputGroup: { marginBottom: 16 },

@@ -1,5 +1,5 @@
 // ==================== AppReferenceScreen.jsx ====================
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,90 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  StyleSheet,
+  Vibration,
+  Image, // <--- Import Image component
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { sharedStyles } from '../screens/sharedStyles'; // adjust path as needed
 
+// Import your image asset
+import LoadingPic from '../../assets/loading_pic.png'; // <--- Adjust path as needed
+
+// Component for the full-screen simulated call UI (kept unchanged for brevity)
+const SimulatedCallScreen = ({ number, title, onEndCall }) => {
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [status, setStatus] = useState('Ringing...');
+
+  React.useEffect(() => {
+    const VIBRATION_PATTERN = [500, 1000];
+    Vibration.vibrate(VIBRATION_PATTERN, true);
+
+    const disconnectTimer = setTimeout(() => {
+      setStatus('Call Ended');
+      Vibration.cancel();
+      setElapsedTime(0);
+
+      setTimeout(onEndCall, 1500);
+    }, 15000);
+
+    return () => {
+      Vibration.cancel();
+      clearTimeout(disconnectTimer);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (status === 'Ringing...') {
+      const interval = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [status]);
+
+  const formatTime = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const displayTime = status === 'Ringing...' ? formatTime(elapsedTime) : status;
+
+  return (
+    <View style={localStyles.callContainer}>
+      <StatusBar hidden={true} />
+      <View style={localStyles.callInfo}>
+        <Text style={localStyles.callStatus}>{status}</Text>
+        <Text style={localStyles.callerName}>{title}</Text>
+        <Text style={localStyles.callerNumber}>{number}</Text>
+        <Text style={localStyles.callTimer}>{displayTime}</Text>
+      </View>
+
+      <View style={localStyles.actionButtons}>
+        <TouchableOpacity style={[localStyles.actionButton, localStyles.blueBg]} disabled={true}>
+          <Icon name="call" size={30} color="#FFF" />
+          <Text style={localStyles.actionButtonText}>Answer</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[localStyles.actionButton, localStyles.redBg]} onPress={() => { Vibration.cancel(); onEndCall(); }}>
+          <Icon name="call-end" size={30} color="#FFF" />
+          <Text style={localStyles.actionButtonText}>End Call</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+
 export const AppReferenceScreen = ({ route }) => {
   const navigation = useNavigation();
   const theme = route?.params?.theme || 'light';
   const isDark = theme === 'dark';
+
+  const [callActive, setCallActive] = useState(false);
+  const [currentCall, setCurrentCall] = useState({ number: '', title: '' });
 
   const features = [
     { icon: 'warning', title: 'SOS Alert', description: 'Press and hold the SOS button for 3 seconds to send emergency alerts to your trusted contacts with your live location.', color: '#EF4444' },
@@ -34,6 +109,27 @@ export const AppReferenceScreen = ({ route }) => {
     { title: 'Ambulance', number: '102', description: 'Medical emergency' },
   ];
 
+  const handleCallSimulation = (item) => {
+    Alert.alert('Simulated Call', 'Do you want to start a simulated call to ' + item.number + '?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Start Call', onPress: () => {
+          setCurrentCall(item);
+          setCallActive(true);
+      }},
+    ]);
+  };
+
+  if (callActive) {
+    return (
+      <SimulatedCallScreen
+        number={currentCall.number}
+        title={currentCall.title}
+        onEndCall={() => setCallActive(false)}
+      />
+    );
+  }
+
+
   return (
     <SafeAreaView style={[sharedStyles.safeArea, { backgroundColor: isDark ? '#111827' : '#F3F4F6' }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#111827' : '#F3F4F6'} />
@@ -50,8 +146,12 @@ export const AppReferenceScreen = ({ route }) => {
 
       <ScrollView style={sharedStyles.scrollView} contentContainerStyle={sharedStyles.contentContainer}>
         <View style={sharedStyles.welcomeSection}>
-          <View style={[sharedStyles.logoContainer, { backgroundColor: isDark ? '#374151' : '#FEE2E2' }]}>
-            <Icon name="shield" size={48} color="#DC2626" />
+          <View style={[sharedStyles.logoContainer, { backgroundColor: isDark ? '#374151' : '#ffd7d7ff' }]}>
+            {/* Replace Icon with Image */}
+            <Image
+              source={LoadingPic} // <--- Use your imported image
+              style={{ width: 90, height: 90 }} // <--- Set width and height to match the Icon size
+            />
           </View>
           <Text style={[sharedStyles.appTitle, { color: isDark ? '#F9FAFB' : '#111827' }]}>Welcome to Sahasi</Text>
           <Text style={[sharedStyles.appSubtitle, { color: isDark ? '#D1D5DB' : '#6B7280' }]}>
@@ -87,12 +187,7 @@ export const AppReferenceScreen = ({ route }) => {
             <TouchableOpacity
               key={index}
               style={[sharedStyles.emergencyCard, { backgroundColor: isDark ? '#374151' : '#FFFFFF', borderColor: isDark ? '#4B5563' : '#E5E7EB' }]}
-              onPress={() => {
-                Alert.alert('Call ' + item.title, 'Do you want to call ' + item.number + '?', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Call', onPress: () => console.log('Calling ' + item.number) },
-                ]);
-              }}
+              onPress={() => handleCallSimulation(item)}
             >
               <View style={sharedStyles.emergencyLeft}>
                 <View style={sharedStyles.emergencyNumberBadge}>
@@ -103,7 +198,7 @@ export const AppReferenceScreen = ({ route }) => {
                   <Text style={[sharedStyles.emergencyDescription, { color: isDark ? '#D1D5DB' : '#6B7280' }]}>{item.description}</Text>
                 </View>
               </View>
-              <Icon name="phone" size={24} color="#22C55E" />
+              <Icon name="phone" size={24} color="#EF4444" />
             </TouchableOpacity>
           ))}
         </View>
@@ -125,9 +220,10 @@ export const AppReferenceScreen = ({ route }) => {
                 'Trust your instincts - if something feels wrong, activate SOS',
                 'Keep emergency numbers saved in your phone contacts',
               ].map((tip, index) => (
-                <View key={index} style={sharedStyles.tipItem}>
-                  <Icon name="check-circle" size={20} color="#22C55E" />
-                  <Text style={[sharedStyles.tipText, { color: isDark ? '#D1D5DB' : '#374151' }]}>{tip}</Text>
+                <View key={index} style={localStyles.responsiveTipItem}>
+                  <Icon name="check-circle" size={20} color="#22C55E" style={{marginRight: 8}} />
+                  {/* 🟢 FIXED: Wrapped text string in <Text> component */}
+                  <Text style={[sharedStyles.tipText, { color: isDark ? '#D1D5DB' : '#374151', flex: 1 }]}>{tip}</Text>
                 </View>
               ))}
             </View>
@@ -148,6 +244,7 @@ export const AppReferenceScreen = ({ route }) => {
         </View>
 
         <View style={sharedStyles.versionSection}>
+          {/* 🟢 FIXED: Wrapped text strings in <Text> component */}
           <Text style={[sharedStyles.versionText, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Sahasi v1.0.0</Text>
           <Text style={[sharedStyles.versionText, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Made with ❤️ for women's safety</Text>
         </View>
@@ -155,5 +252,76 @@ export const AppReferenceScreen = ({ route }) => {
     </SafeAreaView>
   );
 };
+
+
+// 🟢 NEW: Local styles for the SimulatedCallScreen component AND responsive fixes
+const localStyles = StyleSheet.create({
+  callContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  callInfo: {
+    alignItems: 'center',
+  },
+  callStatus: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '400',
+    marginBottom: 10,
+  },
+  callerName: {
+    color: '#FFF',
+    fontSize: 48,
+    fontWeight: '300',
+    marginBottom: 5,
+  },
+  callerNumber: {
+    color: '#CCC',
+    fontSize: 24,
+    fontWeight: '300',
+  },
+  callTimer: {
+    color: '#22C55E',
+    fontSize: 18,
+    marginTop: 20,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '80%',
+  },
+  actionButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 5,
+  },
+  redBg: {
+    backgroundColor: '#EF4444',
+  },
+  blueBg: {
+    backgroundColor: '#3B82F6',
+    opacity: 0.5,
+  },
+  // 🟢 NEW: Responsive style for tip items
+  responsiveTipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start', // Important for multi-line text alignment
+    marginBottom: 8,
+    // Add horizontal padding if sharedStyles.tipsList doesn't have it
+    paddingRight: 16,
+  }
+});
+
 
 export default AppReferenceScreen;

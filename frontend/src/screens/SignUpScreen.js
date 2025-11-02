@@ -11,7 +11,9 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  Alert, // <-- ADDED: For the success pop-up
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // <-- ADDED: For saving user data
 import { registerUser } from '../api'; // make sure this dynamically points to your backend
 
 const { width } = Dimensions.get('window');
@@ -26,42 +28,77 @@ const SignUpScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [signUpError, setSignUpError] = useState('');
-const handleSignUp = async () => {
-  if (password !== confirmPassword) {
-    setSignUpError("Passwords do not match");
-    return;
-  }
 
-  const response = await registerUser({
-    first_name: firstName,     // <-- map frontend state
-    last_name: lastName,       // <-- map frontend state
-    phone: phoneNumber,        // <-- map frontend state
-    email: email,
-    username: username,
-    password: password
-  });
+  const handleSignUp = async () => {
+    // Clear previous error before a new attempt
+    setSignUpError('');
 
-  if (response.ok) {
-  // Save user info to AsyncStorage
-  const userData = {
-    firstName,
-    lastName,
-    phoneNumber,
-    email,
-    username,
+    // --- START: REQUIRED FIELD VALIDATION ---
+    const requiredFields = {
+        'First Name': firstName,
+        'Last Name': lastName,
+        'Phone Number': phoneNumber,
+        'Email': email,
+        'Username': username,
+        'Password': password,
+        'Confirm Password': confirmPassword,
+    };
+
+    for (const [fieldName, value] of Object.entries(requiredFields)) {
+        if (!value.trim()) {
+            setSignUpError(`The '${fieldName}' field is required.`);
+            return; // Stop the function immediately
+        }
+    }
+    // --- END: REQUIRED FIELD VALIDATION ---
+
+    if (password !== confirmPassword) {
+      setSignUpError("Passwords do not match");
+      return;
+    }
+
+    const response = await registerUser({
+      first_name: firstName,
+      last_name: lastName,
+      phone: phoneNumber,
+      email: email,
+      username: username,
+      password: password
+    });
+
+    if (response.ok) {
+      // Save user info to AsyncStorage
+      const userData = {
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+        username,
+      };
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+
+      // 💡 SUCCESS ALERT IMPLEMENTATION
+      Alert.alert(
+        "Sign Up Successful!",
+        "Your account has been created. You can now log in.",
+        [
+          // This button will navigate to the Login screen
+          {
+            text: "Proceed to Login",
+            onPress: () => navigation.navigate("SignInScreen")
+          }
+        ],
+        { cancelable: false } // Prevents closing the alert by tapping outside
+      );
+    } else {
+      // Handle registration errors from the backend
+      setSignUpError(response.data?.detail || "Registration failed. Please check your details.");
+    }
   };
-  await AsyncStorage.setItem('userData', JSON.stringify(userData));
-
-  navigation.navigate("Login");
-} else {
-  setSignUpError(response.data.detail || "Registration failed");
-}
-
-};
 
 
   const handleLogIn = () => {
-    navigation.navigate('SignInScreen');
+    navigation.navigate('SignInScreen'); // Assuming your login screen name is 'SignInScreen'
   };
 
   return (

@@ -47,13 +47,13 @@ export const FakeCallSetupScreen = ({ route }) => {
       />
 
       {/* ✅ Floating Header */}
-      <Header theme={theme} />
+      {/* <Header theme={theme} /> */}
 
       <ScrollView
         style={sharedStyles.scrollView}
         contentContainerStyle={[
           sharedStyles.contentContainer,
-          { paddingTop: 120 }, // ✅ space for header
+          // { paddingTop: 120 }, // ✅ space for header
         ]}
       >
         {/* Back + Title Section */}

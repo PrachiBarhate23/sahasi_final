@@ -7,21 +7,44 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  useWindowDimensions, 
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import Header from '../components/Header';
+import Header from '../components/Header'; 
 import Footer from '../components/Footer';
-import { fetchCurrentLocation, updateUserLocation } from '../api'; // ✅ use both APIs
+import { fetchCurrentLocation, updateUserLocation } from '../api';
 
-const HomePage = ({ route, navigation }) => {
-  const { theme = 'light' } = route.params || {};
-  const isDarkMode = theme === 'dark';
+const DAILY_MESSAGES = [
+  "You are strong and capable! Have a safe day ahead.",
+  "Trust your instincts. We're here for you 24/7.",
+  "Your safety is our top priority. Stay aware and be well.",
+  "Remember to check in with a trusted contact today!",
+  "Confidence is your best shield. Go out and shine!",
+];
 
+const TRUSTED_CONTACTS = [
+    { id: 1, name: 'John Smith' },
+    { id: 2, name: 'Emma Johnson' },
+    { id: 3, name: 'Michael Lee' },
+    { id: 4, name: 'Sarah Chen' },
+];
+
+const getInitials = (name) => {
+    if (!name) return '';
+    const nameParts = name.split(' ');
+    if (nameParts.length === 1) return nameParts[0][0].toUpperCase();
+    const firstNameInitial = nameParts[0][0];
+    const lastNameInitial = nameParts[nameParts.length - 1][0];
+    return `${firstNameInitial} ${lastNameInitial}`.toUpperCase();
+};
+
+const HomePage = ({ navigation }) => { 
+  const { height } = useWindowDimensions(); 
   const [location, setLocation] = useState(null);
+  const [dailyMessage, setDailyMessage] = useState(''); 
   const mapRef = useRef(null);
 
-  // ✅ Fetch last saved location on load
   useEffect(() => {
     (async () => {
       const { ok, data } = await fetchCurrentLocation();
@@ -32,26 +55,25 @@ const HomePage = ({ route, navigation }) => {
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         });
-      } else {
-        console.log('No previous location found:', data.detail || data);
       }
     })();
   }, []);
 
-  // ✅ Watch and update live location
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * DAILY_MESSAGES.length);
+    setDailyMessage(DAILY_MESSAGES[randomIndex]);
+  }, []); 
+
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('Permission to access location was denied');
-        return;
-      }
+      if (status !== 'granted') return;
 
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          timeInterval: 5000, // every 5 seconds
-          distanceInterval: 10, // every 10 meters
+          timeInterval: 5000,
+          distanceInterval: 10,
         },
         async (loc) => {
           const newLocation = {
@@ -61,17 +83,9 @@ const HomePage = ({ route, navigation }) => {
             longitudeDelta: 0.005,
           };
           setLocation(newLocation);
-
-          // ✅ Send live updates to backend
           try {
-            const res = await updateUserLocation(
-              loc.coords.latitude,
-              loc.coords.longitude
-            );
-            if (!res.ok) console.log('Error updating location:', res.data);
-          } catch (err) {
-            console.log('Backend update failed:', err.message);
-          }
+            await updateUserLocation(loc.coords.latitude, loc.coords.longitude);
+          } catch (err) { console.log(err); }
         }
       );
 
@@ -79,219 +93,126 @@ const HomePage = ({ route, navigation }) => {
     })();
   }, []);
 
-  // Move map to current location
-  const handleTrackMe = () => {
-    if (location && mapRef.current) {
-      mapRef.current.animateToRegion(location, 1000);
-    }
-  };
+  const handleInviteSMS = () => console.log('invite');
+  const handleSOSCall = () => navigation.navigate('PanicMode');
 
-  // Buttons (placeholders)
-  const handleInviteSMS = () => console.log('Invite via SMS pressed');
-  const handleSOSCall = () => console.log('SOS Call pressed');
-  const handleImSafe = () => console.log("I'm Safe pressed");
-  const handleNeedHelp = () => console.log('Need Help pressed');
-
-  const dynamicStyles = {
+  const responsiveMapHeight = height * 0.25; 
+  const responsiveStyles = {
     ...styles,
-    container: {
-      ...styles.container,
-      backgroundColor: isDarkMode ? '#111827' : '#F3F4F6',
-    },
-    scrollView: {
-      ...styles.scrollView,
-      backgroundColor: isDarkMode ? '#111827' : '#F3F4F6',
-    },
-    card: {
-      ...styles.card,
-      backgroundColor: isDarkMode ? '#374151' : '#FFFFFF',
-    },
-    cardTitle: {
-      ...styles.cardTitle,
-      color: isDarkMode ? '#F9FAFB' : '#111827',
-    },
-    friendName: {
-      ...styles.friendName,
-      color: isDarkMode ? '#E5E7EB' : '#374151',
-    },
+    mapContainer: { ...styles.mapContainer, height: responsiveMapHeight },
+    mapLoading: { ...styles.mapLoading, height: responsiveMapHeight },
   };
 
   return (
-    <SafeAreaView style={dynamicStyles.container}>
-      <Header theme={theme} />
+    <SafeAreaView style={styles.container}>
+      <Header /> 
 
       <ScrollView
-        style={dynamicStyles.scrollView}
-        contentContainerStyle={[dynamicStyles.scrollViewContent, { paddingTop: 120 }]}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Add Friends Card */}
-        <View style={dynamicStyles.card}>
-          <Text style={dynamicStyles.cardTitle}>Add Friends</Text>
-          <TouchableOpacity
-            style={dynamicStyles.inviteButton}
-            onPress={handleInviteSMS}
-            activeOpacity={0.8}
-          >
-            <Text style={dynamicStyles.inviteButtonText}>Invite via SMS</Text>
+
+        {dailyMessage ? (
+          <View style={styles.messageBox}>
+            <Text style={styles.messageText}>{dailyMessage} 💖</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Add Friends</Text>
+          <TouchableOpacity style={styles.inviteButton} onPress={handleInviteSMS}>
+            <Text style={styles.inviteButtonText}>Invite via SMS</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Current Friends */}
-        <View style={dynamicStyles.card}>
-          <Text style={dynamicStyles.cardTitle}>Current Friends</Text>
-          <View style={dynamicStyles.friendsList}>
-            <View style={dynamicStyles.friendItem}>
-              <View style={dynamicStyles.friendAvatar} />
-              <Text style={dynamicStyles.friendName}>John Smith</Text>
-            </View>
-            <View style={dynamicStyles.friendItem}>
-              <View style={dynamicStyles.friendAvatar} />
-              <Text style={dynamicStyles.friendName}>Emma Johnson</Text>
-            </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Trusted Contacts</Text>
+          <View style={styles.friendsList}>
+            {TRUSTED_CONTACTS.map(contact => (
+                <View key={contact.id} style={styles.friendItem}>
+                    <View style={styles.friendAvatar}>
+                        <Text style={styles.avatarText}>
+                            {getInitials(contact.name)}
+                        </Text>
+                    </View>
+                    <Text style={styles.friendName}>{contact.name}</Text>
+                </View>
+            ))}
           </View>
         </View>
 
-        {/* SOS Call */}
-        <TouchableOpacity
-          style={dynamicStyles.sosButton}
-          onPress={handleSOSCall}
-          activeOpacity={0.8}
-        >
-          <Text style={dynamicStyles.sosButtonText}>SOS Call</Text>
+        <TouchableOpacity style={styles.sosButton} onPress={handleSOSCall}>
+          <Text style={styles.sosButtonText}>SOS Call</Text>
         </TouchableOpacity>
 
-        {/* Emergency Status */}
-        <View style={dynamicStyles.card}>
-          <Text style={dynamicStyles.cardTitle}>Emergency Status Update</Text>
-          <View style={dynamicStyles.emergencyButtonsContainer}>
-            <TouchableOpacity
-              style={dynamicStyles.safeButton}
-              onPress={handleImSafe}
-              activeOpacity={0.8}
-            >
-              <Text style={dynamicStyles.safeButtonText}>I'm Safe</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={dynamicStyles.helpButton}
-              onPress={handleNeedHelp}
-              activeOpacity={0.8}
-            >
-              <Text style={dynamicStyles.helpButtonText}>Need Help</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Map (only current location) */}
         {location ? (
-          <View style={dynamicStyles.mapContainer}>
+          <View style={responsiveStyles.mapContainer}> 
             <MapView
               ref={mapRef}
               provider={PROVIDER_GOOGLE}
-              style={dynamicStyles.map}
+              style={styles.map}
               initialRegion={location}
               showsUserLocation
               showsMyLocationButton
             >
               <Marker coordinate={location} title="You are here" />
             </MapView>
-            <TouchableOpacity
-              style={dynamicStyles.trackMeButton}
-              onPress={handleTrackMe}
-              activeOpacity={0.8}
-            >
-              <Text style={dynamicStyles.trackMeButtonText}>Track Me</Text>
-            </TouchableOpacity>
           </View>
         ) : (
-          <View style={dynamicStyles.mapLoading}>
-            <Text style={dynamicStyles.mapLoadingText}>Loading map...</Text>
+          <View style={responsiveStyles.mapLoading}> 
+            <Text style={styles.mapLoadingText}>Loading map...</Text>
           </View>
         )}
       </ScrollView>
 
-      <Footer theme={theme} navigation={navigation} />
+      <Footer navigation={navigation} theme="light" /> 
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
   scrollView: { flex: 1 },
-  scrollViewContent: { padding: 16, paddingBottom: 120 },
+  scrollViewContent: { padding: 16, paddingBottom: 140, paddingTop: 120 }, 
+
+  messageBox: {
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: '#EAE3FF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B5CF6',
+    marginBottom: 16,
+    marginTop: -10,
+  },
+  messageText: { fontSize: 14, fontWeight: '500', color: '#5B21B6', fontStyle: 'italic' },
+
   card: {
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    backgroundColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
+    shadowOpacity: 0.1,
     elevation: 3,
   },
-  cardTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
-  inviteButton: {
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    backgroundColor: '#8B5CF6',
-  },
+  cardTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12, color: '#111827' },
+  inviteButton: { borderRadius: 8, paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center', backgroundColor: '#8B5CF6' },
   inviteButtonText: { fontSize: 16, fontWeight: '600', color: '#FFF' },
   friendsList: { gap: 12 },
   friendItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  friendAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#8B5CF6',
-  },
-  friendName: { fontSize: 16, fontWeight: '500' },
-  sosButton: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-    backgroundColor: '#EF4444',
-  },
+  friendAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#8B5CF6', justifyContent: 'center', alignItems: 'center' },
+  avatarText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
+  friendName: { fontSize: 16, fontWeight: '500', color: '#374151' },
+
+  sosButton: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 16, backgroundColor: '#EF4444' },
   sosButtonText: { fontSize: 18, fontWeight: 'bold', color: '#FFF' },
-  emergencyButtonsContainer: { flexDirection: 'row', gap: 12 },
-  safeButton: {
-    flex: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    backgroundColor: '#10B981',
-  },
-  safeButtonText: { fontSize: 16, fontWeight: '600', color: '#FFF' },
-  helpButton: {
-    flex: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    backgroundColor: '#EF4444',
-  },
-  helpButtonText: { fontSize: 16, fontWeight: '600', color: '#FFF' },
-  mapContainer: { height: 200, borderRadius: 12, marginBottom: 16 },
+
+  mapContainer: { borderRadius: 12, marginBottom: 16, overflow: 'hidden' }, 
   map: { ...StyleSheet.absoluteFillObject },
-  mapLoading: {
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E5E7EB',
-  },
+  mapLoading: { borderRadius: 12, marginBottom: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: '#E5E7EB' },
   mapLoadingText: { color: '#6B7280' },
-  trackMeButton: {
-    position: 'absolute',
-    bottom: 12,
-    alignSelf: 'center',
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    elevation: 5,
-  },
-  trackMeButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
 });
 
 export default HomePage;

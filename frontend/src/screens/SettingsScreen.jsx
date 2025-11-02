@@ -8,6 +8,7 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
+  useWindowDimensions, 
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
@@ -16,6 +17,7 @@ import Footer from '../components/Footer';
 
 const SettingsScreen = ({theme = 'light'}) => {
   const navigation = useNavigation();
+  const { width } = useWindowDimensions(); 
   const isDark = theme === 'dark';
 
   const settingsOptions = [
@@ -50,64 +52,86 @@ const SettingsScreen = ({theme = 'light'}) => {
   ];
 
   const handleNavigation = (screen) => {
-    navigation.navigate(screen, {theme});
+    navigation.navigate(screen, {theme}); 
   };
 
-const handleLogout = () => {
-  Alert.alert('Logout', 'Are you sure you want to logout?', [
-    { text: 'Cancel', style: 'cancel' },
-    {
-      text: 'Logout',
-      onPress: () => {
-        console.log('User logged out');
-        // Navigate to SignIn screen and remove previous screens from stack
-        navigation.replace('SignInScreen');
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        onPress: () => {
+          console.log('User logged out');
+          navigation.replace('SignInScreen');
+        },
+        style: 'destructive',
       },
-      style: 'destructive',
+    ]);
+  };
+
+  // Centralized Dynamic Styles
+  const dynamicStyles = {
+    safeArea: {
+      backgroundColor: isDark ? '#111827' : '#F3F4F6',
     },
-  ]);
-};
+    headerTitle: {
+      color: isDark ? '#F9FAFB' : '#111827',
+    },
+    card: {
+      backgroundColor: isDark ? '#374151' : '#FFFFFF',
+      shadowOpacity: isDark ? 0.3 : 0.1,
+    },
+    iconContainer: {
+      backgroundColor: isDark ? '#4B5563' : '#F3F4F6',
+    },
+    iconColor: isDark ? '#F9FAFB' : '#111827',
+    chevronColor: isDark ? '#9CA3AF' : '#9CA3AF',
+    cardTitle: {
+      color: isDark ? '#F9FAFB' : '#111827',
+    },
+    cardDescription: {
+      color: isDark ? '#D1D5DB' : '#6B7280',
+    },
+    appInfoText: {
+      color: isDark ? '#9CA3AF' : '#6B7280',
+    },
+  };
 
 
   return (
     <SafeAreaView
       style={[
         styles.safeArea,
-        {backgroundColor: isDark ? '#111827' : '#F3F4F6'},
+        dynamicStyles.safeArea, // Apply dynamic background color
       ]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? '#111827' : '#F3F4F6'}
+        backgroundColor={dynamicStyles.safeArea.backgroundColor}
       />
+      
+      {/* 1. 🚀 FIXED HEADER: Moved outside the ScrollView */}
+      <View style={[styles.header, dynamicStyles.safeArea]}>
+        <Text
+          style={[
+            styles.headerTitle,
+            dynamicStyles.headerTitle,
+          ]}>
+          Settings
+        </Text>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={styles.contentContainer} // Padding is now only for the bottom
         showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text
-            style={[
-              styles.headerTitle,
-              {color: isDark ? '#F9FAFB' : '#111827'},
-            ]}>
-            Settings
-          </Text>
-        </View>
-
+        
         <View style={styles.optionsContainer}>
           {settingsOptions.map((option) => (
             <TouchableOpacity
               key={option.id}
               style={[
                 styles.card,
-                {
-                  backgroundColor: isDark ? '#374151' : '#FFFFFF',
-                  shadowColor: '#000',
-                  shadowOpacity: isDark ? 0.3 : 0.1,
-                  shadowRadius: 4,
-                  shadowOffset: {width: 0, height: 2},
-                  elevation: 3,
-                },
+                dynamicStyles.card,
               ]}
               onPress={() => handleNavigation(option.screen)}
               activeOpacity={0.7}>
@@ -115,26 +139,26 @@ const handleLogout = () => {
                 <View
                   style={[
                     styles.iconContainer,
-                    {backgroundColor: isDark ? '#4B5563' : '#F3F4F6'},
+                    dynamicStyles.iconContainer,
                   ]}>
                   <Icon
                     name={option.icon}
                     size={28}
-                    color={isDark ? '#F9FAFB' : '#111827'}
+                    color={dynamicStyles.iconColor}
                   />
                 </View>
                 <View style={styles.textContainer}>
                   <Text
                     style={[
                       styles.cardTitle,
-                      {color: isDark ? '#F9FAFB' : '#111827'},
+                      dynamicStyles.cardTitle,
                     ]}>
                     {option.title}
                   </Text>
                   <Text
                     style={[
                       styles.cardDescription,
-                      {color: isDark ? '#D1D5DB' : '#6B7280'},
+                      dynamicStyles.cardDescription,
                     ]}>
                     {option.description}
                   </Text>
@@ -142,7 +166,7 @@ const handleLogout = () => {
                 <Icon
                   name="chevron-right"
                   size={24}
-                  color={isDark ? '#9CA3AF' : '#9CA3AF'}
+                  color={dynamicStyles.chevronColor}
                 />
               </View>
             </TouchableOpacity>
@@ -161,14 +185,14 @@ const handleLogout = () => {
           <Text
             style={[
               styles.appInfoText,
-              {color: isDark ? '#9CA3AF' : '#6B7280'},
+              dynamicStyles.appInfoText,
             ]}>
             Sahasi - Women Safety App
           </Text>
           <Text
             style={[
               styles.appInfoText,
-              {color: isDark ? '#9CA3AF' : '#6B7280'},
+              dynamicStyles.appInfoText,
             ]}>
             Made with ❤️ for women's safety
           </Text>
@@ -187,13 +211,17 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  // 🟢 UPDATED: Only bottom padding needed now, since the header is outside the ScrollView
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 100, 
   },
+  // 🟢 UPDATED: Only top/horizontal padding needed for the fixed header bar
   header: {
-    paddingTop: 16,
+    paddingTop: 45,
     paddingBottom: 16,
     paddingHorizontal: 16,
+    // Ensures header is full width and has the correct background color
+    width: '100%', 
   },
   headerTitle: {
     fontSize: 22,
@@ -201,11 +229,17 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     paddingHorizontal: 16,
+    // Optional: Add small margin top to separate content from the fixed header
+    paddingTop: 16, 
   },
   card: {
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 4,
+    elevation: 3,
   },
   cardContent: {
     flexDirection: 'row',
