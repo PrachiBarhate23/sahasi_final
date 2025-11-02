@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,19 +12,20 @@ import {
   BackHandler,
   StatusBar,
   Platform,
-} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import Svg, {Circle} from 'react-native-svg';
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import Svg, { Circle } from "react-native-svg";
+import { sendSOSAlert } from "../api"; // ✅ use your API helper
 
-const {width, height} = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const PanicModeScreen = () => {
   const navigation = useNavigation();
   const [countdown, setCountdown] = useState(10);
   const [isActive, setIsActive] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  
+
   // Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -47,8 +48,8 @@ const PanicModeScreen = () => {
       }),
     ]).start();
 
-    // Continuous pulsing animation for the alert icon
-    const pulseAnimation = Animated.loop(
+    // Pulse & rotation
+    const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.15,
@@ -60,32 +61,29 @@ const PanicModeScreen = () => {
           duration: 700,
           useNativeDriver: true,
         }),
-      ]),
+      ])
     );
-    pulseAnimation.start();
+    pulse.start();
 
-    // Rotating warning animation
-    const rotateAnimation = Animated.loop(
+    const rotate = Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
         duration: 2000,
         useNativeDriver: true,
-      }),
+      })
     );
-    rotateAnimation.start();
+    rotate.start();
 
-    // Strong vibration pattern on start
     Vibration.vibrate([0, 500, 200, 500]);
 
-    // Back button protection
     const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      handleBackPress,
+      "hardwareBackPress",
+      handleBackPress
     );
 
     return () => {
-      pulseAnimation.stop();
-      rotateAnimation.stop();
+      pulse.stop();
+      rotate.stop();
       backHandler.remove();
     };
   }, []);
@@ -93,13 +91,8 @@ const PanicModeScreen = () => {
   useEffect(() => {
     if (countdown > 0 && isActive) {
       const timer = setTimeout(() => {
-        setCountdown(prev => prev - 1);
-        // Stronger vibration as countdown progresses
-        if (countdown <= 5) {
-          Vibration.vibrate(150);
-        } else {
-          Vibration.vibrate(80);
-        }
+        setCountdown((prev) => prev - 1);
+        Vibration.vibrate(countdown <= 5 ? 150 : 80);
       }, 1000);
       return () => clearTimeout(timer);
     } else if (countdown === 0 && isActive) {
@@ -109,16 +102,16 @@ const PanicModeScreen = () => {
 
   const handleBackPress = () => {
     Alert.alert(
-      '⚠️ Cancel SOS Alert?',
-      'Are you sure you want to stop the emergency alert? Your safety is important.',
+      "⚠️ Cancel SOS Alert?",
+      "Are you sure you want to stop the emergency alert?",
       [
-        {text: 'Continue Alert', style: 'cancel'},
+        { text: "Continue Alert", style: "cancel" },
         {
-          text: 'Yes, Cancel',
+          text: "Yes, Cancel",
           onPress: handleCancelPanic,
-          style: 'destructive',
+          style: "destructive",
         },
-      ],
+      ]
     );
     return true;
   };
@@ -126,70 +119,39 @@ const PanicModeScreen = () => {
   const handleAutoSend = async () => {
     setIsActive(false);
     setIsSending(true);
-    
-    // Long vibration for alert sent
     Vibration.vibrate(1000);
-    
-    await sendEmergencyAlert();
-    
-    Alert.alert(
-      '✓ SOS Alert Sent!',
-      'Your trusted contacts have been notified with your live location. Emergency services can be contacted if needed.',
-      [
-        {text: 'OK', onPress: () => navigation.goBack()},
-        {
-          text: 'Call 112',
-          onPress: () => {
-            navigation.goBack();
-            Linking.openURL('tel:112');
-          },
-        },
-      ],
-    );
-  };
 
-  const sendEmergencyAlert = async () => {
-    try {
-      console.log('🚨 EMERGENCY: Sending SOS alert to backend...');
-      
-      // TODO: Replace with your actual backend endpoint
-      // const response = await fetch(`${API_BASE_URL}/api/emergency/send-sos`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${userToken}`,
-      //   },
-      //   body: JSON.stringify({
-      //     timestamp: new Date().toISOString(),
-      //     location: {
-      //       latitude: currentLatitude,
-      //       longitude: currentLongitude,
-      //       accuracy: locationAccuracy,
-      //     },
-      //     alertType: 'PANIC_MODE',
-      //     userId: currentUserId,
-      //   }),
-      // });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('✅ SOS alert sent successfully');
-      
-      // TODO: Start continuous location tracking
-      // startLocationTracking();
-      
-    } catch (error) {
-      console.error('❌ Error sending alert:', error);
+    const { ok, data } = await sendSOSAlert("SOS activated from Panic Mode");
+
+    if (ok) {
+      console.log("✅ SOS alert sent:", data);
       Alert.alert(
-        'Alert Error',
-        'Failed to send alert. Please call emergency services directly.',
+        "✓ SOS Alert Sent!",
+        "Your trusted contacts have been notified with your live location.",
         [
-          {text: 'Retry', onPress: sendEmergencyAlert},
-          {text: 'Call 112', onPress: () => Linking.openURL('tel:112')},
-        ],
+          { text: "OK", onPress: () => navigation.goBack() },
+          {
+            text: "Call 112",
+            onPress: () => {
+              navigation.goBack();
+              Linking.openURL("tel:112");
+            },
+          },
+        ]
+      );
+    } else {
+      console.error("❌ SOS failed:", data);
+      Alert.alert(
+        "Alert Error",
+        data?.detail || "Failed to send alert. Please call emergency services.",
+        [
+          { text: "Retry", onPress: handleAutoSend },
+          { text: "Call 112", onPress: () => Linking.openURL("tel:112") },
+        ]
       );
     }
+
+    setIsSending(false);
   };
 
   const handleCancelPanic = () => {
@@ -200,52 +162,45 @@ const PanicModeScreen = () => {
 
   const handleEmergencyCall = () => {
     Alert.alert(
-      '📞 Emergency Call',
-      'Call emergency services now?\n\nIndia: 112 (National Emergency)\nWomen Helpline: 1091',
+      "📞 Emergency Call",
+      "Call emergency services now?\nIndia: 112 (National) | Women: 1091",
       [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Call 112',
-          onPress: () => Linking.openURL('tel:112'),
-        },
-        {
-          text: 'Women Helpline',
-          onPress: () => Linking.openURL('tel:1091'),
-        },
-      ],
+        { text: "Cancel", style: "cancel" },
+        { text: "Call 112", onPress: () => Linking.openURL("tel:112") },
+        { text: "Women Helpline", onPress: () => Linking.openURL("tel:1091") },
+      ]
     );
   };
 
   const handleSendNow = () => {
     Alert.alert(
-      'Send SOS Immediately?',
-      'This will bypass the countdown and alert your contacts now.',
+      "Send SOS Immediately?",
+      "This will bypass the countdown and alert your contacts now.",
       [
-        {text: 'Wait', style: 'cancel'},
+        { text: "Wait", style: "cancel" },
         {
-          text: 'Send Now',
+          text: "Send Now",
           onPress: () => {
             setCountdown(0);
             handleAutoSend();
           },
         },
-      ],
+      ]
     );
   };
 
   const circumference = 2 * Math.PI * 50;
   const strokeDashoffset = circumference - (countdown / 10) * circumference;
-  
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ["0deg", "360deg"],
   });
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      {/* Animated Background Effect */}
+
+      {/* Background ripples */}
       <View style={styles.backgroundPattern}>
         {[...Array(3)].map((_, i) => (
           <Animated.View
@@ -276,28 +231,24 @@ const PanicModeScreen = () => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={handleBackPress}
-          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Icon name="close" size={28} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.appName}>SAHASI</Text>
         <View style={styles.placeholder} />
       </View>
 
-      {/* Main Content */}
+      {/* Main */}
       <Animated.View
         style={[
           styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{translateY: slideAnim}],
-          },
-        ]}>
-        {/* Alert Icon with Rotation */}
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+        ]}
+      >
         <Animated.View
-          style={[
-            styles.iconContainer,
-            {transform: [{scale: pulseAnim}, {rotate: spin}]},
-          ]}>
+          style={[styles.iconContainer, { transform: [{ scale: pulseAnim }, { rotate: spin }] }]}
+        >
           <View style={styles.iconCircle}>
             <Icon name="warning" size={70} color="#DC2626" />
           </View>
@@ -308,19 +259,9 @@ const PanicModeScreen = () => {
           Emergency alert will be sent to your trusted contacts in
         </Text>
 
-        {/* Enhanced Countdown Circle */}
         <View style={styles.timerContainer}>
           <Svg width={150} height={150}>
-            {/* Background Circle */}
-            <Circle
-              cx="75"
-              cy="75"
-              r="50"
-              fill="none"
-              stroke="#FEE2E2"
-              strokeWidth="8"
-            />
-            {/* Progress Circle */}
+            <Circle cx="75" cy="75" r="50" fill="none" stroke="#FEE2E2" strokeWidth="8" />
             <Circle
               cx="75"
               cy="75"
@@ -340,27 +281,19 @@ const PanicModeScreen = () => {
           </View>
         </View>
 
-        {/* Status Message */}
         <View style={styles.statusContainer}>
           <Icon name="gps-fixed" size={20} color="#059669" />
-          <Text style={styles.statusText}>
-            Location tracking active • Recording audio
-          </Text>
+          <Text style={styles.statusText}>Location tracking active • Recording audio</Text>
         </View>
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.sendNowButton}
-            onPress={handleSendNow}
-            disabled={!isActive}>
+          <TouchableOpacity style={styles.sendNowButton} onPress={handleSendNow} disabled={!isActive}>
             <Icon name="flash-on" size={22} color="white" />
             <Text style={styles.sendNowText}>Send Alert Now</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.callButton}
-            onPress={handleEmergencyCall}>
+          <TouchableOpacity style={styles.callButton} onPress={handleEmergencyCall}>
             <Icon name="phone" size={22} color="white" />
             <Text style={styles.callButtonText}>Emergency Call</Text>
           </TouchableOpacity>
@@ -368,43 +301,38 @@ const PanicModeScreen = () => {
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={handleCancelPanic}
-            disabled={isSending}>
+            disabled={isSending}
+          >
             <Text style={styles.cancelButtonText}>
-              {isSending ? 'Sending...' : 'Cancel SOS'}
+              {isSending ? "Sending..." : "Cancel SOS"}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Helper Text */}
         <View style={styles.helperContainer}>
           <Icon name="info-outline" size={18} color="#6B7280" />
           <Text style={styles.helperText}>
-            Stay calm. Your location is being shared with trusted contacts
+            Stay calm. Your location is being shared with trusted contacts.
           </Text>
         </View>
 
-        {/* Emergency Numbers */}
         <View style={styles.emergencyNumbers}>
           <Text style={styles.emergencyTitle}>Quick Access:</Text>
           <View style={styles.numberRow}>
-            <TouchableOpacity
-              style={styles.numberButton}
-              onPress={() => Linking.openURL('tel:112')}>
-              <Text style={styles.numberText}>112</Text>
-              <Text style={styles.numberLabel}>Emergency</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.numberButton}
-              onPress={() => Linking.openURL('tel:1091')}>
-              <Text style={styles.numberText}>1091</Text>
-              <Text style={styles.numberLabel}>Women Help</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.numberButton}
-              onPress={() => Linking.openURL('tel:100')}>
-              <Text style={styles.numberText}>100</Text>
-              <Text style={styles.numberLabel}>Police</Text>
-            </TouchableOpacity>
+            {[
+              { num: "112", label: "Emergency" },
+              { num: "1091", label: "Women Help" },
+              { num: "100", label: "Police" },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.num}
+                style={styles.numberButton}
+                onPress={() => Linking.openURL(`tel:${item.num}`)}
+              >
+                <Text style={styles.numberText}>{item.num}</Text>
+                <Text style={styles.numberLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </Animated.View>
@@ -412,11 +340,13 @@ const PanicModeScreen = () => {
   );
 };
 
+// (keep your styles same)
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  backgroundPattern: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  ripple: { position: "absolute", width: width * 1.5, height: width * 1.5, borderRadius: width * 0.75, backgroundColor: "#DC2626" },
+  // (other styles unchanged)
+
   backgroundPattern: {
     position: 'absolute',
     top: 0,

@@ -4,7 +4,7 @@
 // Configure API base URL
 // =======================
 
-export const API_BASE_URL =  'https://all-bobcats-bow.loca.lt';
+export const API_BASE_URL = 'https://calm-bananas-rush.loca.lt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ================= LOGIN API =================

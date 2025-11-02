@@ -24,7 +24,7 @@ const Footer = () => {
   };
 
   // camera instead of messages
-  const handleCameraPress = () => navigation.navigate('CameraPage');
+  const handleCameraPress = () => navigation.navigate('EmergencyMediaScreen');
 
   const handlePhonePress = () => setShowCallScreen(true);
   const handleEndCall = () => setShowCallScreen(false);

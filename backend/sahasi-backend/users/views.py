@@ -7,6 +7,8 @@ from rest_framework import permissions
 from django.contrib.auth import get_user_model
 from .serializers import RegisterSerializer, UserSerializer, ChangePasswordSerializer, TrustedContactSerializer
 from .models import TrustedContact
+from django.utils import timezone
+
 from django.shortcuts import get_object_or_404
 from .models import Location, SafePlace, ChatMessage,EmergencyMedia,SOSAlert   # updated import
 from .serializers import LocationSerializer, SafePlaceSerializer, ChatMessageSerializer,EmergencyMediaSerializer,SOSAlertSerializer,UpdateProfileSerializer
@@ -25,7 +27,7 @@ from email.mime.text import MIMEText
 from pyfcm import FCMNotification
 from .tasks import send_sos_push, send_sos_sms
 from .utils.capture_media import capture_photo, capture_video
-from .tasks import send_sos_sms, send_sos_push
+from .tasks import send_sos_sms, send_sos_push,send_sos_whatsapp
 
 
 
@@ -322,50 +324,52 @@ class EmergencyMediaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
 class SOSAlertView(APIView):
+    """
+    Handles SOS alert creation and triggers WhatsApp/SMS notifications.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         user = request.user
+
+        # --- Create SOS record ---
         sos = SOSAlert.objects.create(
             user=user,
-            message=request.data.get("message", "")
+            message=request.data.get("message", ""),
+            created_at=timezone.now()
         )
 
-        # --- Capture emergency media (optional) ---
+        # --- Optional emergency media capture ---
         media_links = []
-        try:
-            photo = capture_photo()
-            if photo:
-                m = EmergencyMedia.objects.create(user=user, file=photo, media_type="photo")
-                media_links.append(request.build_absolute_uri(m.file.url))
-        except Exception as e:
-            print("Photo capture failed:", e)
+        for capture_func, media_type in [
+            (capture_photo, "photo"),
+            (lambda: capture_video(duration=5), "video")
+        ]:
+            try:
+                media_file = capture_func()
+                if media_file:
+                    m = EmergencyMedia.objects.create(
+                        user=user,
+                        file=media_file,
+                        media_type=media_type
+                    )
+                    media_links.append(request.build_absolute_uri(m.file.url))
+            except Exception as e:
+                print(f"[WARN] {media_type.capitalize()} capture failed:", e)
 
-        try:
-            video = capture_video(duration=5)
-            if video:
-                m = EmergencyMedia.objects.create(user=request.user, file=video, media_type="video")
-                media_links.append(request.build_absolute_uri(m.file.url))
-        except Exception as e:
-            print("Video capture failed:", e)
-
-        # ✅ --- Get current location (same as merged safe places) ---
+        # --- Get location ---
         lat = request.data.get("lat") or request.data.get("latitude")
         lng = request.data.get("lng") or request.data.get("longitude")
 
-        # If not provided, fallback to latest saved location
         if not lat or not lng:
-            latest_location = Location.objects.filter(user=user).order_by("-timestamp").first()
-            if latest_location:
-                lat, lng = latest_location.latitude, latest_location.longitude
+            latest = Location.objects.filter(user=user).order_by("-timestamp").first()
+            if latest:
+                lat, lng = latest.latitude, latest.longitude
 
-        # --- Build correct location message ---
         if lat and lng:
             try:
-                lat = float(lat)
-                lng = float(lng)
+                lat, lng = float(lat), float(lng)
                 maps_link = f"https://maps.google.com/?q={lat},{lng}"
                 location_msg = f"My current location: {maps_link}"
             except ValueError:
@@ -373,46 +377,50 @@ class SOSAlertView(APIView):
         else:
             location_msg = "Location not available."
 
-        # --- Build SOS message ---
-        sms_msg = (
-            f"🚨 SOS ALERT 🚨\n"
-            f"I am in danger, please help me!\n\n"
-            f"{location_msg}\n"
-        )
-
+        # --- Build alert message ---
+        message_lines = [
+            "🚨 SOS ALERT 🚨",
+            "I am in danger, please help me!",
+            "",
+            location_msg,
+        ]
         if sos.message:
-            sms_msg += f"\nAdditional message: {sos.message}\n"
-
+            message_lines.append(f"\nAdditional message: {sos.message.strip()}")
         if media_links:
-            sms_msg += "\nEmergency Media:\n" + "\n".join(media_links)
-
-        sms_msg += "\n— Sahasi App Automatic Alert —"
+            message_lines.append("\nEmergency Media:\n" + "\n".join(media_links))
+        message_lines.append("\n— Sahasi App Automatic Alert —")
+        final_message = "\n".join(message_lines)
 
         # --- Collect trusted contacts ---
-        contacts = user.trusted_contacts.all()
+        contacts = user.trusted_contacts.exclude(phone__isnull=True).exclude(phone__exact="")
         phones = []
+
         for c in contacts:
-            if c.phone:
-                num = c.phone
-                if not num.startswith("+"):
-                    num = "+91" + num
-                phones.append(num)
+            num = c.phone.strip().replace(" ", "")
+            # If no '+' prefix, assume India (+91)
+            if not num.startswith("+"):
+                num = "+91" + num
+            phones.append(num)
 
-        # --- Send SMS only ---
+        # --- Trigger Celery tasks ---
         if phones:
-            send_sos_sms.delay(sms_msg, phones)
-        # Push notifications commented out
-        # send_sos_push.delay(tokens, "🚨 SOS Alert", sms_msg)
+            try:
+                # WhatsApp preferred
+                send_sos_whatsapp.delay(final_message, phones)
+            except Exception as e:
+                print("[ERROR] WhatsApp send failed, fallback to SMS:", e)
+                send_sos_sms.delay(final_message, phones)
+        else:
+            print("[INFO] No trusted contacts found to send alerts.")
 
+        # --- Return API response ---
         return Response({
-            "detail": "SOS triggered successfully. Accurate location sent via SMS.",
-            "message": sms_msg,
+            "detail": "SOS triggered successfully.",
+            "message": final_message,
             "latitude": lat,
             "longitude": lng,
             "phones": phones,
         }, status=status.HTTP_201_CREATED)
-
-
 
 
     

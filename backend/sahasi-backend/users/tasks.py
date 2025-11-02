@@ -52,24 +52,94 @@ import base64
 #         raise self.retry(exc=e)
 
 
+# @shared_task(bind=True)
+# def send_sos_sms(self, message, phones):
+#     """
+#     Sends SOS SMS to list of phone numbers using Twilio.
+#     """
+#     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+#     results = {}
+#     for phone in phones:
+#         try:
+#             sms = client.messages.create(
+#                 body=message,
+#                 from_=settings.TWILIO_PHONE_NUMBER,
+#                 to=phone
+#             )
+#             results[phone] = {"sid": sms.sid, "status": sms.status}
+#         except Exception as e:
+#             results[phone] = {"error": str(e)}
+#     print("[Celery] SMS result:\n", results)
+#     return results
+
+
+# @shared_task(bind=True)
+# def send_sos_push(self, tokens, title, body):
+#     """
+#     Sends push notifications to multiple devices using FCM.
+#     """
+#     push_service = FCMNotification(api_key=settings.FCM_SERVER_KEY)
+#     result = push_service.notify_multiple_devices(
+#         registration_ids=tokens,
+#         message_title=title,
+#         message_body=body
+#     )
+#     print("[Celery] Push result:\n", result)
+#     return result
+
+from celery import shared_task
+from django.conf import settings
+from twilio.rest import Client
+from pyfcm import FCMNotification
+
+
 @shared_task(bind=True)
-def send_sos_sms(self, message, phones):
+def send_sos_whatsapp(self, message, phones):
     """
-    Sends SOS SMS to list of phone numbers using Twilio.
+    Sends SOS alert via WhatsApp using Twilio.
+    Works with either sandbox or business number from settings.
     """
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
     results = {}
+
+    from_whatsapp = f"whatsapp:{settings.TWILIO_WHATSAPP_NUMBER}"
+
     for phone in phones:
         try:
-            sms = client.messages.create(
+            to_whatsapp = f"whatsapp:{phone}"
+            msg = client.messages.create(
+                from_=from_whatsapp,
+                to=to_whatsapp,
                 body=message,
-                from_=settings.TWILIO_PHONE_NUMBER,
-                to=phone
             )
-            results[phone] = {"sid": sms.sid, "status": sms.status}
+            results[phone] = {"sid": msg.sid, "status": msg.status}
         except Exception as e:
             results[phone] = {"error": str(e)}
-    print("[Celery] SMS result:\n", results)
+
+    print("[Celery] WhatsApp results:\n", results)
+    return results
+
+
+@shared_task(bind=True)
+def send_sos_sms(self, message, phones):
+    """
+    Sends SOS alert via SMS using Twilio.
+    """
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    results = {}
+
+    for phone in phones:
+        try:
+            msg = client.messages.create(
+                body=message,
+                from_=settings.TWILIO_PHONE_NUMBER,
+                to=phone,
+            )
+            results[phone] = {"sid": msg.sid, "status": msg.status}
+        except Exception as e:
+            results[phone] = {"error": str(e)}
+
+    print("[Celery] SMS results:\n", results)
     return results
 
 
@@ -82,7 +152,7 @@ def send_sos_push(self, tokens, title, body):
     result = push_service.notify_multiple_devices(
         registration_ids=tokens,
         message_title=title,
-        message_body=body
+        message_body=body,
     )
     print("[Celery] Push result:\n", result)
     return result

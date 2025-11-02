@@ -16,6 +16,8 @@ import { ProfileSettingsScreen } from './src/screens/ProfileSettingsScreen';
 import { AppReferenceScreen } from './src/screens/AppReferenceScreen';
 import { FakeCallSetupScreen } from './src/screens/FakeCallSetupScreen';
 import { TrustedContactsScreen } from './src/screens/TrustedContactsScreen';
+import EmergencyMediaScreen from './src/screens/EmergencyMediaScreen';
+
 
 const Stack = createStackNavigator();
 
@@ -40,6 +42,7 @@ const App = () => {
         <Stack.Screen name="SignInScreen" component={SignInScreen} />
         <Stack.Screen name="SignUpScreen" component={SignUpScreen} />
         <Stack.Screen name="HomePage" component={HomePage} />
+        <Stack.Screen name="EmergencyMediaScreen" component={EmergencyMediaScreen} />
 
         {/* ✅ Always using MapPage */}
         <Stack.Screen name="MapPage" component={MapPage} />

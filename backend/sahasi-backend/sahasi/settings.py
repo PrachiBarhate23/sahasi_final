@@ -131,9 +131,13 @@ EMAIL_HOST_USER = "sahasi.alerts@gmail.com"
 EMAIL_HOST_PASSWORD = "YOUR_APP_PASSWORD"  # Use App Password (recommended)
 
 # Twilio (SMS)
+# Twilio (SMS + WhatsApp)
 TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
 TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")
 TWILIO_PHONE_NUMBER = config("TWILIO_PHONE_NUMBER", default="")
+TWILIO_WHATSAPP_NUMBER = config("TWILIO_WHATSAPP_NUMBER", default="whatsapp:+14155238886")
+TWILIO_WHATSAPP_TEMPLATE_SID = config("TWILIO_WHATSAPP_TEMPLATE_SID", default="")
+
 
 # Firebase (Push Notifications)
 FCM_SERVER_KEY = config("FCM_SERVER_KEY", default="")
