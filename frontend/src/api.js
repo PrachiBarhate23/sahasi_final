@@ -4,7 +4,7 @@
 // Configure API base URL
 // =======================
 
-export const API_BASE_URL = 'https://calm-bananas-rush.loca.lt';
+export const API_BASE_URL = 'https://mean-wings-report.loca.lt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ================= LOGIN API =================
@@ -299,3 +299,27 @@ export const sendSOSAlert = async (message = "") => {
   }
 };
 
+export const getSafetyScore = async (lat, lon) => {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    if (!token) throw new Error("No auth token");
+
+    const res = await fetch(`${API_BASE_URL}/api/users/safety/score/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        latitude: lat,
+        longitude: lon,
+      }),
+    });
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    console.error("getSafetyScore Error:", err);
+    return { ok: false, data: null };
+  }
+};

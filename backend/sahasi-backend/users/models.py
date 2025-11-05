@@ -104,3 +104,15 @@ class SOSAlert(models.Model):
 
     def __str__(self):
         return f"SOS from {self.user.username} at {self.created_at:%Y-%m-%d %H:%M:%S}"
+
+
+class SafetyScore(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="safety_scores")
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    score = models.IntegerField()  # 0 - 100 dynamic risk score
+    risk_level = models.CharField(max_length=20)  # "Safe", "Caution", "Unsafe"
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.score} ({self.risk_level}) @ {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"

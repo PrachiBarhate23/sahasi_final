@@ -8,7 +8,10 @@ from django.contrib.auth import get_user_model
 from .serializers import RegisterSerializer, UserSerializer, ChangePasswordSerializer, TrustedContactSerializer
 from .models import TrustedContact
 from django.utils import timezone
-
+from .models import SafetyScore
+from .serializers import SafetyScoreSerializer
+from .safety_scorer import SafetyScorer
+import datetime
 from django.shortcuts import get_object_or_404
 from .models import Location, SafePlace, ChatMessage,EmergencyMedia,SOSAlert   # updated import
 from .serializers import LocationSerializer, SafePlaceSerializer, ChatMessageSerializer,EmergencyMediaSerializer,SOSAlertSerializer,UpdateProfileSerializer
@@ -435,3 +438,45 @@ class UpdateFCMTokenView(APIView):
         request.user.fcm_token = token
         request.user.save()
         return Response({"detail": "Token updated."}, status=status.HTTP_200_OK)
+
+safety_engine = SafetyScorer()
+
+class SafetyScoreView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        lat = request.data.get("latitude")
+        lon = request.data.get("longitude")
+        area_score = int(request.data.get("area_score", 30))
+
+        if not lat or not lon:
+            return Response({"error": "latitude and longitude required"}, status=400)
+
+        # Prepare location entry
+        entry = {
+            "lat": float(lat),
+            "lon": float(lon),
+            "time": datetime.datetime.utcnow().isoformat(),
+            "area_score": area_score
+        }
+
+        # ✅ Use the scorer's process method
+        score = safety_engine.process(entry)
+
+        # Determine risk level
+        risk = (
+            "Safe" if score > 70 else
+            "Caution" if score > 40 else
+            "Unsafe"
+        )
+
+        # ✅ Save to DB
+        safety_obj = SafetyScore.objects.create(
+            user=request.user,
+            latitude=lat,
+            longitude=lon,
+            score=score,
+            risk_level=risk
+        )
+
+        return Response(SafetyScoreSerializer(safety_obj).data, status=200)

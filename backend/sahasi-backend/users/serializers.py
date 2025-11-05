@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import TrustedContact, Location, SafePlace 
-from .models import ChatMessage,EmergencyMedia,SOSAlert
+from .models import ChatMessage,EmergencyMedia,SOSAlert,SafetyScore
 
 User = get_user_model()
 
@@ -98,3 +98,11 @@ class SOSAlertSerializer(serializers.ModelSerializer):
         model = SOSAlert
         fields = ["id", "message", "is_active", "created_at"]
         read_only_fields = ["id", "created_at", "is_active"]
+
+
+
+class SafetyScoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SafetyScore
+        fields = ["id", "latitude", "longitude", "score", "risk_level", "timestamp"]
+        read_only_fields = ["id", "timestamp"]

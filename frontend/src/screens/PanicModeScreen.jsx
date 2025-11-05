@@ -22,7 +22,7 @@ const { width } = Dimensions.get("window");
 
 const PanicModeScreen = () => {
   const navigation = useNavigation();
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(3);
   const [isActive, setIsActive] = useState(true);
   const [isSending, setIsSending] = useState(false);
 

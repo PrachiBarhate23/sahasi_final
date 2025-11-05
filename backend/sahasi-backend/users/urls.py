@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import UpdateFCMTokenView
 from .views import GoogleAuthView
-from .views import (RegisterView, MeView,LoginView, ChangePasswordView, TrustedContactViewSet, LogoutView, UpdateLocationView, CurrentLocationView,SafePlaceViewSet,ChatMessageViewSet,MergedSafePlacesView,EmergencyMediaViewSet,SOSAlertView,UpdateProfileView
+from .views import (RegisterView, MeView,LoginView, ChangePasswordView, TrustedContactViewSet, LogoutView, UpdateLocationView, CurrentLocationView,SafePlaceViewSet,ChatMessageViewSet,MergedSafePlacesView,EmergencyMediaViewSet,SOSAlertView,UpdateProfileView, SafetyScoreView
 )
 
 router = DefaultRouter()
@@ -27,6 +27,6 @@ urlpatterns = [
     path("fcm/update/", UpdateFCMTokenView.as_view(), name="update_fcm"),
     path("sos/", SOSAlertView.as_view(), name="sos_alert"),
     path("auth/google/", GoogleAuthView.as_view(), name="google_auth"),
-    
+    path("safety/score/", SafetyScoreView.as_view(), name="safety-score"),
 ]
 
